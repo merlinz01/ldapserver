@@ -1,0 +1,3 @@
+go 1.22rc1
+
+use ./test
