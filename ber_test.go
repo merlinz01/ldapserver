@@ -3,7 +3,6 @@ package ldapserver_test
 import (
 	"bytes"
 	"errors"
-	"slices"
 	"testing"
 
 	"github.com/merlinz01/ldapserver"
@@ -15,6 +14,18 @@ func getBooleanSimple(data []byte, shouldbe bool) bool {
 		return !shouldbe
 	}
 	return b
+}
+
+func slicesEqual[T comparable](a []T, b []T) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, ai := range a {
+		if ai != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func TestBerDecode(t *testing.T) {
@@ -379,13 +390,13 @@ func TestParseAddRequest(t *testing.T) {
 	if r_add.Attributes[0].Description != "objectClass" {
 		t.Error("wrong attribute description")
 	}
-	if !slices.Equal(r_add.Attributes[0].Values, []string{"top", "domain"}) {
+	if !slicesEqual(r_add.Attributes[0].Values, []string{"top", "domain"}) {
 		t.Error("wrong attribute values")
 	}
 	if r_add.Attributes[1].Description != "dc" {
 		t.Error("wrong attribute description")
 	}
-	if !slices.Equal(r_add.Attributes[1].Values, []string{"example"}) {
+	if !slicesEqual(r_add.Attributes[1].Values, []string{"example"}) {
 		t.Error("wrong attribute values")
 	}
 }
