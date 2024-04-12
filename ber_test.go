@@ -16,6 +16,14 @@ func getBooleanSimple(data []byte, shouldbe bool) bool {
 	return b
 }
 
+func getIntegerSimple(data []byte, shouldbe int64) int64 {
+	i, err := ldapserver.BerGetInteger(data)
+	if err != nil {
+		return shouldbe - 1
+	}
+	return i
+}
+
 func slicesEqual[T comparable](a []T, b []T) bool {
 	if len(a) != len(b) {
 		return false
@@ -28,7 +36,7 @@ func slicesEqual[T comparable](a []T, b []T) bool {
 	return true
 }
 
-func TestBerDecode(t *testing.T) {
+func TestBerTypes(t *testing.T) {
 	if ldapserver.BerType(0b00000000).Class() != ldapserver.BerClassUniversal {
 		t.Error("invalid BER type reported")
 	}
@@ -62,6 +70,8 @@ func TestBerDecode(t *testing.T) {
 	if ldapserver.BerType(0b10101010).TagNumber() != 0b00001010 {
 		t.Error("invalid tag number reported")
 	}
+}
+func TestBerSizes(t *testing.T) {
 	type sizetest struct {
 		size uint32
 		err  error
@@ -89,6 +99,9 @@ func TestBerDecode(t *testing.T) {
 			t.Error("Expected error", st.err, ", got error", err)
 		}
 	}
+}
+
+func TestBerReadElement(t *testing.T) {
 	type elementTest struct {
 		res  ldapserver.BerRawElement
 		repr []byte
@@ -112,6 +125,9 @@ func TestBerDecode(t *testing.T) {
 			t.Error("Expected error", et.err, ", got error", err)
 		}
 	}
+}
+
+func TestBerBoolean(t *testing.T) {
 	if getBooleanSimple([]byte{0x00}, false) {
 		t.Error("invalid boolean read")
 	}
@@ -121,6 +137,9 @@ func TestBerDecode(t *testing.T) {
 	if !getBooleanSimple([]byte{0xff}, true) {
 		t.Error("invalid boolean read")
 	}
+}
+
+func TestBerInteger(t *testing.T) {
 	BerGetInteger := func(data []byte) int64 {
 		res, err := ldapserver.BerGetInteger(data)
 		if err != nil {
@@ -144,12 +163,18 @@ func TestBerDecode(t *testing.T) {
 	if !errors.Is(err, ldapserver.ErrIntegerTooLarge) {
 		t.Error("Expected error", ldapserver.ErrIntegerTooLarge, ", got error", err)
 	}
+}
+
+func TestBerOctetString(t *testing.T) {
 	if ldapserver.BerGetOctetString([]byte{}) != "" {
 		t.Error("invalid octet string read")
 	}
 	if ldapserver.BerGetOctetString([]byte("This is a test!")) != "This is a test!" {
 		t.Error("invalid octet string read")
 	}
+}
+
+func TestBerSequence(t *testing.T) {
 	seq, err := ldapserver.BerGetSequence(
 		[]byte{0x04, 0x06, 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x21, 0x01, 0x01, 0xff, 0x02, 0x01, 0x05})
 	if err != nil {
@@ -164,9 +189,12 @@ func TestBerDecode(t *testing.T) {
 	if seq[1].Type != ldapserver.BerTypeBoolean && getBooleanSimple(seq[1].Data, true) != true {
 		t.Error("wrong second item of sequence", seq[1])
 	}
-	if seq[2].Type != ldapserver.BerTypeInteger && BerGetInteger(seq[2].Data) != 5 {
+	if seq[2].Type != ldapserver.BerTypeInteger && getIntegerSimple(seq[2].Data, 5) != 5 {
 		t.Error("wrong third item of sequence", seq[2])
 	}
+}
+
+func TestParseDeleteRequest(t *testing.T) {
 	deleteRequest := []byte{
 		0x30, 0x35, 0x02, 0x01, 0x05, 0x4a, 0x11, 0x64, 0x63, 0x3d, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c,
 		0x65, 0x2c, 0x64, 0x63, 0x3d, 0x63, 0x6f, 0x6d, 0xa0, 0x1d, 0x30, 0x1b, 0x04, 0x16, 0x31, 0x2e,
@@ -195,8 +223,11 @@ func TestBerDecode(t *testing.T) {
 	if m.Controls[0].ControlValue != "" {
 		t.Error("invalid control value")
 	}
+}
+
+func TestParseEmptySuccessResult(t *testing.T) {
 	emptySuccess := []byte{0x30, 0x0c, 0x02, 0x01, 0x03, 0x69, 0x07, 0x0a, 0x01, 0x00, 0x04, 0x00, 0x04, 0x00}
-	m, err = ldapserver.ReadLDAPMessage(bytes.NewReader(emptySuccess))
+	m, err := ldapserver.ReadLDAPMessage(bytes.NewReader(emptySuccess))
 	if err != nil {
 		t.Error("Failed to read LDAPMessage:", err)
 	}
@@ -225,6 +256,9 @@ func TestBerDecode(t *testing.T) {
 	if len(r.Referral) != 0 {
 		t.Error("invalid referral")
 	}
+}
+
+func TestParseNoSuchObjectResult(t *testing.T) {
 	noSuchObject := []byte{
 		0x30, 0x81, 0x9d,
 		0x02, 0x01, 0x03,
@@ -250,7 +284,7 @@ func TestBerDecode(t *testing.T) {
 		0x20, 0x6e, 0x6f, 0x74, 0x20, 0x65, 0x78, 0x69,
 		0x73, 0x74, 0x2e,
 	}
-	m, err = ldapserver.ReadLDAPMessage(bytes.NewReader(noSuchObject))
+	m, err := ldapserver.ReadLDAPMessage(bytes.NewReader(noSuchObject))
 	if err != nil {
 		t.Error("Failed to read LDAPMessage:", err)
 	}
@@ -263,7 +297,7 @@ func TestBerDecode(t *testing.T) {
 	if m.ProtocolOp.Type != ldapserver.TypeAddResponseOp {
 		t.Error("invalid protocol op type")
 	}
-	r, err = ldapserver.GetResult(m.ProtocolOp.Data)
+	r, err := ldapserver.GetResult(m.ProtocolOp.Data)
 	if err != nil {
 		t.Error("Failed to read LDAPResult:", err)
 	}
@@ -279,6 +313,9 @@ func TestBerDecode(t *testing.T) {
 	if len(r.Referral) != 0 {
 		t.Error("wrong referral")
 	}
+}
+
+func TestParseReferralResult(t *testing.T) {
 	referral := []byte{
 		0x30, 0x81, 0xcf,
 		0x02, 0x01, 0x03,
@@ -311,7 +348,7 @@ func TestBerDecode(t *testing.T) {
 		0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x2c,
 		0x64, 0x63, 0x3d, 0x63, 0x6f, 0x6d,
 	}
-	m, err = ldapserver.ReadLDAPMessage(bytes.NewReader(referral))
+	m, err := ldapserver.ReadLDAPMessage(bytes.NewReader(referral))
 	if err != nil {
 		t.Error("Failed to read LDAPMessage:", err)
 	}
@@ -324,7 +361,7 @@ func TestBerDecode(t *testing.T) {
 	if m.ProtocolOp.Type != ldapserver.TypeAddResponseOp {
 		t.Error("wrong protocol op type")
 	}
-	r, err = ldapserver.GetResult(m.ProtocolOp.Data)
+	r, err := ldapserver.GetResult(m.ProtocolOp.Data)
 	if err != nil {
 		t.Error("Failed to get LDAPResult:", err)
 	}
@@ -347,6 +384,7 @@ func TestBerDecode(t *testing.T) {
 		t.Error("wrong first referral", r.Referral[1])
 	}
 }
+
 func TestParseAddRequest(t *testing.T) {
 	addrequest := []byte{
 		0x30, 0x49,
