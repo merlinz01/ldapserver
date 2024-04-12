@@ -1,7 +1,11 @@
 # ldapserver
 
-A LDAPv3 server framework.
-For custom integrations or full-blown LDAP servers.
+A LDAPv3 server framework for custom integrations or full-blown LDAP servers.
+Zero external dependencies.
+
+```
+go get github.com/merlinz01/ldapserver
+```
 
 ## Why another LDAP library?
 
@@ -16,7 +20,8 @@ specifically focused on enabling the building of custom integrations.
 
 ## Usage
 
-See `test/main.go` for an example implementation.
+This package provides an interface similar to that of `net/http`.
+See `test/main.go` for a working example implementation.
 
 ### Create a handler
 
@@ -52,7 +57,7 @@ if err != nil {
 }
 ```
 
-Or you can set the server's `TLSConfig` field
+Or you can set/modify the server's `TLSConfig` field
 for more specific configuration.
 The server's `TLSConfig` must not be `nil` if you want
 to support StartTLS or initial TLS.
@@ -176,6 +181,27 @@ has an `Authentication` field with type `any`,
 for storing implementation-defined authentication info.
 See `test/main.go` for an example.
 
+## Current feature support
+
+- [x] TLS
+- [x] Strict protocol validation
+- [x] OID validation
+- [ ] DN parsing support
+- [ ] Full concurrency ability
+- [ ] Comprehensive message parsing tests
+- [x] Abandon request
+- [x] Add request
+- [x] Bind request
+- [ ] Compare request
+- [x] Extended requests
+- [ ] Modify request
+- [ ] ModifyDN request
+- [x] Search request (concurrent)
+- [x] StartTLS request
+- [x] Unbind request
+- [x] Unsolicited notifications
+- [x] Notice of disconnection
+
 ## Goals
 
 - Full conformance to the relevant specifications,
@@ -183,7 +209,5 @@ See `test/main.go` for an example.
 - Support for all builtin operations and common extended operations
 - Comprehensive encoding/decoding tests
 - Strict client data validity checking
-  - Currently the only string values
-    validated internally are OIDs.
 
 Contributions and bug reports are welcome!
