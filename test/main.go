@@ -79,7 +79,11 @@ func (t *TestHandler) Bind(conn *ldapserver.Conn, msg *ldapserver.Message, req *
 func (t *TestHandler) Search(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.SearchRequest) {
 	// Allow cancellation
 	t.abandonment[msg.MessageID] = false
-	defer delete(t.abandonment, msg.MessageID)
+	defer func() {
+		t.abandonmentLock.Lock()
+		delete(t.abandonment, msg.MessageID)
+		t.abandonmentLock.Unlock()
+	}()
 
 	auth := ""
 	if conn.Authentication != nil {

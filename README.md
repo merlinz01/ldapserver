@@ -1,14 +1,15 @@
 # ldapserver
 
 A LDAPv3 server framework.
+For custom integrations or full-blown LDAP servers.
 
 ## Why another LDAP library?
 
 I needed to integrate an LDAP-compatible web app with my website database's stored login information.
-I didn't want to try to manipulate a full-stack LDAP server
+I didn't want to try to remotely manipulate an off-the-shelf LDAP server
 from my website's code, so a custom LDAP server 
 was what I was looking for.
-The LDAP server frameworks I found gave obscure errors/panics
+The existing LDAP server frameworks I found threw obscure errors
 when I tested them. Being suspicious of the security implications
 of such errors, I decided to write a new framework,
 specifically focused on enabling the building of custom integrations.
@@ -51,6 +52,11 @@ if err != nil {
 }
 ```
 
+Or you can set the server's `TLSConfig` field
+for more specific configuration.
+The server's `TLSConfig` must not be `nil` if you want
+to support StartTLS or initial TLS.
+
 ### Start the server
 
 Use `ListenAndServe()` for a `ldap://` server,
@@ -72,7 +78,7 @@ call its `Shutdown()` method.
 server.Shutdown()
 ```
 
-## Adding LDAP operations
+## Implementing LDAP operations
 
 To enable more functionality,
 define your own methods on the handler.
@@ -114,12 +120,12 @@ To support cancellation of an operation,
 the following method is recommended.
 See `test/main.go` for an example.
 
-Add a map and mutex to your handler's struct.
+Add a map and an accompanying mutex to your handler's struct.
 
 ```go
 type MyHandler struct {
     ldapserver.BaseHandler
-    abandonment map[ldapserver.MessageID]bool
+    abandonment      map[ldapserver.MessageID]bool
     abandonmentMutex sync.Mutex
 }
 ```
@@ -130,8 +136,12 @@ the operation can be canceled.
 
 ```go
 h.abandonment[msg.MessageID] = false // i.e. not cancelled but may be
-// Make sure not to leave dangling ends
-defer delete(h.abandonment, msg.MessageID)
+// Remove the flag when done
+defer func() {
+    t.abandonmentLock.Lock()
+    delete(t.abandonment, msg.MessageID)
+    t.abandonmentLock.Unlock()
+}()
 ```
 
 Wherever in the method you want to be able to cancel
@@ -146,6 +156,19 @@ if t.abandonment[msg.MessageID] {
 ...
 ```
 
+Then define your Abandon method like this:
+
+```go
+func (t *TestHandler) Abandon(conn *ldapserver.Conn, msg *ldapserver.Message, messageID ldapserver.MessageID) {
+	t.abandonmentLock.Lock()
+    // Set the flag only if the messageID is in the map
+	if _, exists := t.abandonment[messageID]; exists {
+		t.abandonment[messageID] = true
+	}
+	t.abandonmentLock.Unlock()
+}
+```
+
 ## Authentication
 
 The `Conn` object passed to each request method
@@ -156,9 +179,11 @@ See `test/main.go` for an example.
 ## Goals
 
 - Full conformance to the relevant specifications,
-  especially RFC 4511.
+  e.g. RFC 4511.
 - Support for all builtin operations and common extended operations
 - Comprehensive encoding/decoding tests
 - Strict client data validity checking
   - Currently the only string values
     validated internally are OIDs.
+
+Contributions and bug reports are welcome!
