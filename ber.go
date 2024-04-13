@@ -224,15 +224,21 @@ func BerEncodeEnumerated(i int64) []byte {
 
 // Return a BER-encoded element with the specified type code and data
 func BerEncodeElement(etype BerType, data []byte) []byte {
-	res := make([]byte, len(data)+6)
+	res := make([]byte, 1, len(data)+6)
 	res[0] = byte(etype)
 	size := len(data)
-	res[1] = 0x84
-	res[2] = byte(size >> 24)
-	res[3] = byte(size >> 16)
-	res[4] = byte(size >> 8)
-	res[5] = byte(size)
-	copy(res[6:], data)
+	if size < 0x80 {
+		res = append(res, byte(size))
+	} else if size <= 0xffff {
+		res = append(res, 0x81, byte((size&0xff00)>>8), byte(size&0xff))
+	} else if size <= 0xffffff {
+		res = append(res, 0x82, byte((size&0xff0000)>>16), byte((size&0xff00)>>8), byte(size&0xff))
+	} else if size <= 0xffffffff {
+		res = append(res, 0x83, byte((size&0xff000000)>>24), byte((size&0xff0000)>>16), byte((size&0xff00)>>8), byte(size&0xff))
+	} else {
+		panic("size too large")
+	}
+	res = append(res, data...)
 	return res
 }
 

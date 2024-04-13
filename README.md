@@ -21,7 +21,7 @@ specifically focused on enabling the building of custom integrations.
 ## Usage
 
 This package provides an interface similar to that of `net/http`.
-See `test/main.go` for a working example implementation.
+See `test/main.go` for a working demo implementation.
 
 ### Create a handler
 
@@ -165,12 +165,12 @@ Then define your Abandon method like this:
 
 ```go
 func (t *TestHandler) Abandon(conn *ldapserver.Conn, msg *ldapserver.Message, messageID ldapserver.MessageID) {
-	t.abandonmentLock.Lock()
+    t.abandonmentLock.Lock()
     // Set the flag only if the messageID is in the map
-	if _, exists := t.abandonment[messageID]; exists {
-		t.abandonment[messageID] = true
-	}
-	t.abandonmentLock.Unlock()
+    if _, exists := t.abandonment[messageID]; exists {
+        t.abandonment[messageID] = true
+    }
+    t.abandonmentLock.Unlock()
 }
 ```
 
@@ -186,7 +186,7 @@ See `test/main.go` for an example.
 - [x] TLS
 - [x] Strict protocol validation
 - [x] OID validation
-- [ ] DN parsing support
+- [x] DN parsing support
 - [x] Full concurrency ability
 - [x] Comprehensive message parsing tests
 - [x] Abandon request
