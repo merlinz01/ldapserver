@@ -162,7 +162,11 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 			conn.SendResult(msg.MessageID, nil, TypeAddResponseOp, ProtocolError)
 			return
 		}
-		s.Handler.Add(conn, msg, req)
+		conn.asyncOperations.Add(1)
+		go func() {
+			defer conn.asyncOperations.Done()
+			s.Handler.Add(conn, msg, req)
+		}()
 	case TypeBindRequestOp:
 		log.Println("Bind request")
 		req, err := GetBindRequest(msg.ProtocolOp.Data)
@@ -198,15 +202,6 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 			return
 		}
 		s.Handler.Extended(conn, msg, req)
-	case TypeModifyDNRequestOp:
-		log.Println("ModifyDN request")
-		req, err := GetModifyDNRequest(msg.ProtocolOp.Data)
-		if err != nil {
-			log.Println("Error parsing ModifyDN request:", err)
-			conn.SendResult(msg.MessageID, nil, TypeModifyDNResponseOp, ProtocolError)
-			return
-		}
-		s.Handler.ModifyDN(conn, msg, req)
 	case TypeModifyRequestOp:
 		log.Println("Modify request")
 		req, err := GetModifyRequest(msg.ProtocolOp.Data)
@@ -215,7 +210,24 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 			conn.SendResult(msg.MessageID, nil, TypeModifyResponseOp, ProtocolError)
 			return
 		}
-		s.Handler.Modify(conn, msg, req)
+		conn.asyncOperations.Add(1)
+		defer func() {
+			defer conn.asyncOperations.Done()
+			s.Handler.Modify(conn, msg, req)
+		}()
+	case TypeModifyDNRequestOp:
+		log.Println("ModifyDN request")
+		req, err := GetModifyDNRequest(msg.ProtocolOp.Data)
+		if err != nil {
+			log.Println("Error parsing ModifyDN request:", err)
+			conn.SendResult(msg.MessageID, nil, TypeModifyDNResponseOp, ProtocolError)
+			return
+		}
+		conn.asyncOperations.Add(1)
+		defer func() {
+			defer conn.asyncOperations.Done()
+			s.Handler.ModifyDN(conn, msg, req)
+		}()
 	case TypeSearchRequestOp:
 		log.Println("Search request")
 		req, err := GetSearchRequest(msg.ProtocolOp.Data)
