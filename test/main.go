@@ -47,6 +47,24 @@ func (t *TestHandler) Abandon(conn *ldapserver.Conn, msg *ldapserver.Message, me
 	t.abandonmentLock.Unlock()
 }
 
+func (t *TestHandler) Add(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.AddRequest) {
+	auth := getAuth(conn)
+	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
+		log.Println("Not an authorized connection!", auth)
+		conn.SendResult(msg.MessageID, nil, ldapserver.TypeAddResponseOp, ldapserver.PermissionDenied)
+		return
+	}
+	log.Println("Add DN:", req.Entry)
+	for _, attr := range req.Attributes {
+		log.Println("  Attribute:", attr.Description)
+		log.Println("  Values:", attr.Values)
+	}
+	res := &ldapserver.Result{
+		ResultCode: ldapserver.ResultSuccess,
+	}
+	conn.SendResult(msg.MessageID, nil, ldapserver.TypeAddResponseOp, res)
+}
+
 func (t *TestHandler) Bind(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.BindRequest) {
 	res := &ldapserver.BindResponse{}
 	if req.Version != 3 {
@@ -113,6 +131,20 @@ func (t *TestHandler) Compare(conn *ldapserver.Conn, msg *ldapserver.Message, re
 		ResultCode: ldapserver.LDAPResultCompareTrue,
 	}
 	conn.SendResult(msg.MessageID, nil, ldapserver.TypeCompareResponseOp, res)
+}
+
+func (t *TestHandler) Delete(conn *ldapserver.Conn, msg *ldapserver.Message, dn string) {
+	auth := getAuth(conn)
+	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
+		log.Println("Not an authorized connection!", auth)
+		conn.SendResult(msg.MessageID, nil, ldapserver.TypeDeleteResponseOp, ldapserver.PermissionDenied)
+		return
+	}
+	log.Println("Delete DN:", dn)
+	res := &ldapserver.Result{
+		ResultCode: ldapserver.ResultSuccess,
+	}
+	conn.SendResult(msg.MessageID, nil, ldapserver.TypeDeleteResponseOp, res)
 }
 
 func (t *TestHandler) Modify(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.ModifyRequest) {
@@ -217,4 +249,17 @@ func (t *TestHandler) Search(conn *ldapserver.Conn, msg *ldapserver.Message, req
 		ResultCode: ldapserver.ResultSuccess,
 	}
 	conn.SendResult(msg.MessageID, nil, ldapserver.TypeSearchResultDoneOp, res)
+}
+
+func (t *TestHandler) Extended(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.ExtendedRequest) {
+	switch req.Name {
+	case ldapserver.OIDPasswordModify:
+		log.Println("Password modify")
+		// Pretend to handle it
+		res := &ldapserver.ExtendedResult{}
+		res.ResultCode = ldapserver.ResultSuccess
+		conn.SendResult(msg.MessageID, nil, ldapserver.TypeExtendedResponseOp, res)
+	default:
+		t.BaseHandler.Extended(conn, msg, req)
+	}
 }

@@ -192,7 +192,12 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 		}()
 	case TypeDeleteRequestOp:
 		log.Println("Delete request")
-		conn.SendResult(msg.MessageID, nil, TypeDeleteResponseOp, UnsupportedOperation)
+		dn := BerGetOctetString(msg.ProtocolOp.Data)
+		conn.asyncOperations.Add(1)
+		go func() {
+			defer conn.asyncOperations.Done()
+			s.Handler.Delete(conn, msg, dn)
+		}()
 	case TypeExtendedRequestOp:
 		log.Println("Extended request")
 		req, err := GetExtendedRequest(msg.ProtocolOp.Data)

@@ -187,15 +187,16 @@ See `test/main.go` for an example.
 - [x] Strict protocol validation
 - [x] OID validation
 - [ ] DN parsing support
-- [ ] Full concurrency ability
+- [x] Full concurrency ability
 - [ ] Comprehensive message parsing tests
 - [x] Abandon request
 - [x] Add request
 - [x] Bind request
 - [x] Compare request (concurrent)
+- [x] Delete request (concurrent)
 - [x] Extended requests
-- [x] Modify request
-- [x] ModifyDN request
+- [x] Modify request (concurrent)
+- [x] ModifyDN request (concurrent)
 - [x] Search request (concurrent)
 - [x] StartTLS request
 - [x] Unbind request
