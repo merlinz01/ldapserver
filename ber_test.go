@@ -835,29 +835,29 @@ func TestParseModifyDNMoveRequest(t *testing.T) {
 		t.Fatal("Failed to parse LDAPMessage:", err)
 	}
 	if m.MessageID != 3 {
-		t.Fatal("wrong message id")
+		t.Error("wrong message id")
 	}
 	if m.ProtocolOp.Type != ldapserver.TypeModifyDNRequestOp {
-		t.Fatal("wrong protocol op type")
+		t.Error("wrong protocol op type")
 	}
 	if len(m.Controls) != 0 {
-		t.Fatal("wrong number of controls")
+		t.Error("wrong number of controls")
 	}
 	req, err := ldapserver.GetModifyDNRequest(m.ProtocolOp.Data)
 	if err != nil {
 		t.Fatal("Failed to parse modify DN request:", err)
 	}
 	if req.Object != "uid=john.doe,ou=People,dc=example,dc=com" {
-		t.Fatal("wrong object")
+		t.Error("wrong object")
 	}
 	if req.NewRDN != "uid=john.doe" {
-		t.Fatal("wrong new RDN")
+		t.Error("wrong new RDN")
 	}
 	if req.DeleteOldRDN != false {
-		t.Fatal("wrong delete old RDN")
+		t.Error("wrong delete old RDN")
 	}
 	if req.NewSuperior != "ou=Users,dc=example,dc=com" {
-		t.Fatal("wrong new superior")
+		t.Error("wrong new superior")
 	}
 }
 
@@ -884,28 +884,425 @@ func TestParseModifyDNRenameAndMoveRequest(t *testing.T) {
 		t.Fatal("Failed to parse LDAPMessage:", err)
 	}
 	if m.MessageID != 2 {
-		t.Fatal("wrong message id")
+		t.Error("wrong message id")
 	}
 	if m.ProtocolOp.Type != ldapserver.TypeModifyDNRequestOp {
-		t.Fatal("wrong protocol op type")
+		t.Error("wrong protocol op type")
 	}
 	if len(m.Controls) != 0 {
-		t.Fatal("wrong number of controls")
+		t.Error("wrong number of controls")
 	}
 	req, err := ldapserver.GetModifyDNRequest(m.ProtocolOp.Data)
 	if err != nil {
 		t.Fatal("Failed to parse modify DN request:", err)
 	}
 	if req.Object != "uid=jdoe,ou=People,dc=example,dc=com" {
-		t.Fatal("wrong object")
+		t.Error("wrong object")
 	}
 	if req.NewRDN != "uid=john.doe" {
-		t.Fatal("wrong new RDN")
+		t.Error("wrong new RDN")
 	}
 	if req.DeleteOldRDN != true {
-		t.Fatal("wrong delete old RDN")
+		t.Error("wrong delete old RDN")
 	}
 	if req.NewSuperior != "ou=Users,dc=example,dc=com" {
-		t.Fatal("wrong new superior")
+		t.Error("wrong new superior")
+	}
+}
+
+func TestParseSearchFilter(t *testing.T) {
+	readFilter := func(data []byte) *ldapserver.Filter {
+		elmt, err := ldapserver.BerReadElement(bytes.NewReader(data))
+		if err != nil {
+			t.Fatal("Failed to read element:", err)
+		}
+		f, err := ldapserver.GetFilter(elmt)
+		if err != nil {
+			t.Fatal("Failed to parse filter:", err)
+		}
+		return f
+	}
+	f := readFilter([]byte{0x87, 0x03, 0x75, 0x69, 0x64})
+	if f.Type != ldapserver.FilterTypePresent {
+		t.Fatal("wrong filter type")
+	}
+	if f.Data.(string) != "uid" {
+		t.Error("wrong filter data")
+	}
+	f = readFilter([]byte{0xa3, 0x0b, 0x04, 0x03, 0x75, 0x69, 0x64, 0x04, 0x04, 0x6a, 0x64, 0x6f, 0x65})
+	if f.Type != ldapserver.FilterTypeEqual {
+		t.Fatal("wrong filter type")
+	}
+	data := f.Data.(*ldapserver.AttributeValueAssertion)
+	if data.Description != "uid" {
+		t.Error("wrong attribute description")
+	}
+	if data.Value != "jdoe" {
+		t.Error("wrong attribute value")
+	}
+	f = readFilter([]byte{
+		0xa5, 0x26,
+		0x04, 0x0f, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x54, 0x69,
+		0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70,
+		0x04, 0x13, 0x32, 0x30, 0x31, 0x37, 0x30, 0x31, 0x30, 0x32,
+		0x30, 0x33, 0x30, 0x34, 0x30, 0x35, 0x2e, 0x36,
+		0x37, 0x38, 0x5a})
+	if f.Type != ldapserver.FilterTypeGreaterOrEqual {
+		t.Fatal("wrong filter type")
+	}
+	data = f.Data.(*ldapserver.AttributeValueAssertion)
+	if data.Description != "createTimestamp" {
+		t.Error("wrong attribute description")
+	}
+	if data.Value != "20170102030405.678Z" {
+		t.Error("wrong attribute value")
+	}
+	f = readFilter([]byte{
+		0xa6, 0x16,
+		0x04, 0x0e, 0x61, 0x63, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x42,
+		0x61, 0x6c, 0x61, 0x6e, 0x63, 0x65,
+		0x04, 0x04, 0x31, 0x32, 0x33, 0x34})
+	if f.Type != ldapserver.FilterTypeLessOrEqual {
+		t.Fatal("wrong filter type")
+	}
+	data = f.Data.(*ldapserver.AttributeValueAssertion)
+	if data.Description != "accountBalance" {
+		t.Error("wrong attribute description")
+	}
+	if data.Value != "1234" {
+		t.Error("wrong attribute value")
+	}
+	f = readFilter([]byte{0xa8, 0x11, 0x04, 0x09, 0x67, 0x69, 0x76, 0x65, 0x6e, 0x4e, 0x61, 0x6d, 0x65, 0x04, 0x04, 0x4a, 0x6f, 0x68, 0x6e})
+	if f.Type != ldapserver.FilterTypeApproxMatch {
+		t.Fatal("wrong filter type")
+	}
+	data = f.Data.(*ldapserver.AttributeValueAssertion)
+	if data.Description != "givenName" {
+		t.Error("wrong attribute description")
+	}
+	if data.Value != "John" {
+		t.Error("wrong attribute value")
+	}
+	f = readFilter([]byte{0xa4, 0x0b, 0x04, 0x02, 0x63, 0x6e, 0x30, 0x05, 0x80, 0x03, 0x61, 0x62, 0x63})
+	if f.Type != ldapserver.FilterTypeSubstrings {
+		t.Fatal("wrong filter type")
+	}
+	data1 := f.Data.(*ldapserver.SubstringFilter)
+	if data1.Attribute != "cn" {
+		t.Error("wrong attribute description")
+	}
+	if data1.Initial != "abc" {
+		t.Error("wrong initial value")
+	}
+	if len(data1.Any) != 0 {
+		t.Error("wrong number of any values")
+	}
+	if data1.Final != "" {
+		t.Error("wrong final value")
+	}
+	f = readFilter([]byte{0xa4, 0x0b, 0x04, 0x02, 0x63, 0x6e, 0x30, 0x05, 0x81, 0x03, 0x6c, 0x6d, 0x6e})
+	if f.Type != ldapserver.FilterTypeSubstrings {
+		t.Fatal("wrong filter type")
+	}
+	data1 = f.Data.(*ldapserver.SubstringFilter)
+	if data1.Attribute != "cn" {
+		t.Error("wrong attribute description")
+	}
+	if data1.Initial != "" {
+		t.Error("wrong initial value")
+	}
+	if !slicesEqual(data1.Any, []string{"lmn"}) {
+		t.Error("wrong any values")
+	}
+	if data1.Final != "" {
+		t.Error("wrong final value")
+	}
+	f = readFilter([]byte{0xa4, 0x0b, 0x04, 0x02, 0x63, 0x6e, 0x30, 0x05, 0x82, 0x03, 0x78, 0x79, 0x7a})
+	if f.Type != ldapserver.FilterTypeSubstrings {
+		t.Fatal("wrong filter type")
+	}
+	data1 = f.Data.(*ldapserver.SubstringFilter)
+	if data1.Attribute != "cn" {
+		t.Error("wrong attribute description")
+	}
+	if data1.Initial != "" {
+		t.Error("wrong initial value")
+	}
+	if len(data1.Any) != 0 {
+		t.Error("wrong number of any values")
+	}
+	if data1.Final != "xyz" {
+		t.Error("wrong final value")
+	}
+	f = readFilter([]byte{
+		0xa4, 0x1f, 0x04, 0x02, 0x63, 0x6e,
+		0x30, 0x19,
+		0x80, 0x03, 0x61, 0x62, 0x63,
+		0x81, 0x03, 0x64, 0x65, 0x66,
+		0x81, 0x03, 0x6c, 0x6d, 0x6e,
+		0x81, 0x03, 0x75, 0x76, 0x77,
+		0x82, 0x03, 0x78, 0x79, 0x7a})
+	if f.Type != ldapserver.FilterTypeSubstrings {
+		t.Fatal("wrong filter type")
+	}
+	data1 = f.Data.(*ldapserver.SubstringFilter)
+	if data1.Attribute != "cn" {
+		t.Error("wrong attribute description")
+	}
+	if data1.Initial != "abc" {
+		t.Error("wrong initial value")
+	}
+	if !slicesEqual(data1.Any, []string{"def", "lmn", "uvw"}) {
+		t.Error("wrong any values")
+	}
+	if data1.Final != "xyz" {
+		t.Error("wrong final value")
+	}
+	f = readFilter([]byte{0xa9, 0x0b, 0x82, 0x03, 0x75, 0x69, 0x64, 0x83, 0x04, 0x6a, 0x64, 0x6f, 0x65})
+	if f.Type != ldapserver.FilterTypeExtensibleMatch {
+		t.Fatal("wrong filter type")
+	}
+	data2 := f.Data.(*ldapserver.MatchingRuleAssertion)
+	if data2.MatchingRule != "" {
+		t.Error("wrong matching rule")
+	}
+	if data2.Attribute != "uid" {
+		t.Error("wrong matching attribute")
+	}
+	if data2.Value != "jdoe" {
+		t.Error("wrong matching value")
+	}
+	if data2.DNAttributes != false {
+		t.Error("wrong DN attributes")
+	}
+	f = readFilter([]byte{
+		0xa9, 0x16,
+		0x81, 0x0f, 0x63, 0x61, 0x73, 0x65, 0x49, 0x67, 0x6e, 0x6f,
+		0x72, 0x65, 0x4d, 0x61, 0x74, 0x63, 0x68,
+		0x83, 0x03, 0x66, 0x6f, 0x6f})
+	if f.Type != ldapserver.FilterTypeExtensibleMatch {
+		t.Fatal("wrong filter type")
+	}
+	data2 = f.Data.(*ldapserver.MatchingRuleAssertion)
+	if data2.MatchingRule != "caseIgnoreMatch" {
+		t.Error("wrong matching rule")
+	}
+	if data2.Attribute != "" {
+		t.Error("wrong matching attribute")
+	}
+	if data2.Value != "foo" {
+		t.Error("wrong matching value")
+	}
+	if data2.DNAttributes != false {
+		t.Error("wrong DN attributes")
+	}
+	f = readFilter([]byte{
+		0xa9, 0x1f,
+		0x81, 0x0f, 0x63, 0x61, 0x73, 0x65, 0x49, 0x67, 0x6e, 0x6f,
+		0x72, 0x65, 0x4d, 0x61, 0x74, 0x63, 0x68,
+		0x82, 0x03, 0x75, 0x69, 0x64,
+		0x83, 0x04, 0x6a, 0x64, 0x6f, 0x65,
+		0x84, 0x01, 0xff})
+	if f.Type != ldapserver.FilterTypeExtensibleMatch {
+		t.Fatal("wrong filter type")
+	}
+	data2 = f.Data.(*ldapserver.MatchingRuleAssertion)
+	if data2.MatchingRule != "caseIgnoreMatch" {
+		t.Error("wrong matching rule")
+	}
+	if data2.Attribute != "uid" {
+		t.Error("wrong matching attribute")
+	}
+	if data2.Value != "jdoe" {
+		t.Error("wrong matching value")
+	}
+	if data2.DNAttributes != true {
+		t.Error("wrong DN attributes")
+	}
+	f = readFilter([]byte{
+		0xa0, 0x1e,
+		0xa3, 0x11,
+		0x04, 0x09, 0x67, 0x69, 0x76, 0x65, 0x6e, 0x4e, 0x61, 0x6d, 0x65,
+		0x04, 0x04, 0x4a, 0x6f, 0x68, 0x6e,
+		0xa3, 0x09,
+		0x04, 0x02, 0x73, 0x6e,
+		0x04, 0x03, 0x44, 0x6f, 0x65})
+	if f.Type != ldapserver.FilterTypeAnd {
+		t.Fatal("wrong filter type")
+	}
+	data3 := f.Data.([]ldapserver.Filter)
+	if len(data3) != 2 {
+		t.Error("wrong number of filters")
+	}
+	if data3[0].Type != ldapserver.FilterTypeEqual {
+		t.Fatal("wrong filter type")
+	}
+	data = data3[0].Data.(*ldapserver.AttributeValueAssertion)
+	if data.Description != "givenName" {
+		t.Error("wrong attribute description")
+	}
+	if data.Value != "John" {
+		t.Error("wrong attribute value")
+	}
+	if data3[1].Type != ldapserver.FilterTypeEqual {
+		t.Fatal("wrong filter type")
+	}
+	data = data3[1].Data.(*ldapserver.AttributeValueAssertion)
+	if data.Description != "sn" {
+		t.Error("wrong attribute description")
+	}
+	if data.Value != "Doe" {
+		t.Error("wrong attribute value")
+	}
+	f = readFilter([]byte{0xa0, 0x00})
+	if f.Type != ldapserver.FilterTypeAbsoluteTrue {
+		t.Fatal("wrong filter type")
+	}
+	f = readFilter([]byte{
+		0xa1, 0x2a,
+		0xa3, 0x11,
+		0x04, 0x09, 0x67, 0x69, 0x76, 0x65, 0x6e, 0x4e, 0x61, 0x6d, 0x65,
+		0x04, 0x04, 0x4a, 0x6f, 0x68, 0x6e,
+		0xa3, 0x15,
+		0x04, 0x09, 0x67, 0x69, 0x76, 0x65, 0x6e, 0x4e, 0x61, 0x6d, 0x65,
+		0x04, 0x08, 0x4a, 0x6f, 0x6e, 0x61, 0x74, 0x68, 0x61, 0x6e})
+	if f.Type != ldapserver.FilterTypeOr {
+		t.Fatal("wrong filter type")
+	}
+	data3 = f.Data.([]ldapserver.Filter)
+	if len(data3) != 2 {
+		t.Error("wrong number of filters")
+	}
+	if data3[0].Type != ldapserver.FilterTypeEqual {
+		t.Fatal("wrong filter type")
+	}
+	data = data3[0].Data.(*ldapserver.AttributeValueAssertion)
+	if data.Description != "givenName" {
+		t.Error("wrong attribute description")
+	}
+	if data.Value != "John" {
+		t.Error("wrong attribute value")
+	}
+	if data3[1].Type != ldapserver.FilterTypeEqual {
+		t.Fatal("wrong filter type")
+	}
+	data = data3[1].Data.(*ldapserver.AttributeValueAssertion)
+	if data.Description != "givenName" {
+		t.Error("wrong attribute description")
+	}
+	if data.Value != "Jonathan" {
+		t.Error("wrong attribute value")
+	}
+	f = readFilter([]byte{0xa1, 0x00})
+	if f.Type != ldapserver.FilterTypeAbsoluteFalse {
+		t.Fatal("wrong filter type")
+	}
+	f = readFilter([]byte{
+		0xa2, 0x13,
+		0xa3, 0x11,
+		0x04, 0x09, 0x67, 0x69, 0x76, 0x65, 0x6e, 0x4e, 0x61, 0x6d, 0x65,
+		0x04, 0x04, 0x4a, 0x6f, 0x68, 0x6e})
+	if f.Type != ldapserver.FilterTypeNot {
+		t.Fatal("wrong filter type")
+	}
+	f = f.Data.(*ldapserver.Filter)
+	if f.Type != ldapserver.FilterTypeEqual {
+		t.Fatal("wrong filter type")
+	}
+	data = f.Data.(*ldapserver.AttributeValueAssertion)
+	if data.Description != "givenName" {
+		t.Error("wrong attribute description")
+	}
+	if data.Value != "John" {
+		t.Error("wrong attribute value")
+	}
+}
+
+func TestParseSearchRequest(t *testing.T) {
+	searchRequest := []byte{0x30, 0x56,
+		0x02, 0x01, 0x02,
+		0x63, 0x51,
+		0x04, 0x11, 0x64, 0x63, 0x3d, 0x65, 0x78, 0x61, 0x6d, 0x70,
+		0x6c, 0x65, 0x2c, 0x64, 0x63, 0x3d, 0x63, 0x6f, 0x6d,
+		0x0a, 0x01, 0x02,
+		0x0a, 0x01, 0x00,
+		0x02, 0x02, 0x03, 0xe8,
+		0x02, 0x01, 0x1e,
+		0x01, 0x01, 0x00,
+		0xa0, 0x24,
+		0xa3, 0x15,
+		0x04, 0x0b, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x43, 0x6c,
+		0x61, 0x73, 0x73,
+		0x04, 0x06, 0x70, 0x65, 0x72, 0x73, 0x6f, 0x6e,
+		0xa3, 0x0b,
+		0x04, 0x03, 0x75, 0x69, 0x64,
+		0x04, 0x04, 0x6a, 0x64, 0x6f, 0x65,
+		0x30, 0x06,
+		0x04, 0x01, 0x2a,
+		0x04, 0x01, 0x2b}
+	m, err := ldapserver.ReadLDAPMessage(bytes.NewReader(searchRequest))
+	if err != nil {
+		t.Fatal("Failed to parse LDAPMessage:", err)
+	}
+	if m.MessageID != 2 {
+		t.Error("wrong message id")
+	}
+	if m.ProtocolOp.Type != ldapserver.TypeSearchRequestOp {
+		t.Error("wrong protocol op type")
+	}
+	if len(m.Controls) != 0 {
+		t.Error("wrong number of controls")
+	}
+	req, err := ldapserver.GetSearchRequest(m.ProtocolOp.Data)
+	if err != nil {
+		t.Fatal("Failed to parse search request:", err)
+	}
+	if req.BaseObject != "dc=example,dc=com" {
+		t.Error("wrong base object")
+	}
+	if req.Scope != ldapserver.SearchScopeWholeSubtree {
+		t.Error("wrong scope")
+	}
+	if req.DerefAliases != ldapserver.AliasDerefNever {
+		t.Error("wrong deref aliases")
+	}
+	if req.SizeLimit != 1000 {
+		t.Error("wrong size limit")
+	}
+	if req.TimeLimit != 30 {
+		t.Error("wrong time limit")
+	}
+	if req.TypesOnly != false {
+		t.Error("wrong types only")
+	}
+	if req.Filter.Type != ldapserver.FilterTypeAnd {
+		t.Fatal("wrong filter type")
+	}
+	data := req.Filter.Data.([]ldapserver.Filter)
+	if len(data) != 2 {
+		t.Fatal("wrong number of filters")
+	}
+	if data[0].Type != ldapserver.FilterTypeEqual {
+		t.Fatal("wrong filter type")
+	}
+	ava := data[0].Data.(*ldapserver.AttributeValueAssertion)
+	if ava.Description != "objectClass" {
+		t.Error("wrong attribute description")
+	}
+	if ava.Value != "person" {
+		t.Error("wrong attribute value")
+	}
+	if data[1].Type != ldapserver.FilterTypeEqual {
+		t.Fatal("wrong filter type")
+	}
+	ava = data[1].Data.(*ldapserver.AttributeValueAssertion)
+	if ava.Description != "uid" {
+		t.Error("wrong attribute description")
+	}
+	if ava.Value != "jdoe" {
+		t.Error("wrong attribute value")
+	}
+	if !slicesEqual(req.Attributes, []string{"*", "+"}) {
+		t.Error("wrong attributes")
 	}
 }

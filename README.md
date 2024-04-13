@@ -181,16 +181,16 @@ has an `Authentication` field with type `any`,
 for storing implementation-defined authentication info.
 See `test/main.go` for an example.
 
-## Current feature support
+## Feature support
 
 - [x] TLS
 - [x] Strict protocol validation
 - [x] OID validation
 - [ ] DN parsing support
 - [x] Full concurrency ability
-- [ ] Comprehensive message parsing tests
+- [x] Comprehensive message parsing tests
 - [x] Abandon request
-- [x] Add request
+- [x] Add request (concurrent)
 - [x] Bind request
 - [x] Compare request (concurrent)
 - [x] Delete request (concurrent)
@@ -211,5 +211,6 @@ See `test/main.go` for an example.
 - Support for all builtin operations and common extended operations
 - Comprehensive encoding/decoding tests
 - Strict client data validity checking
+- Ease of use
 
 Contributions and bug reports are welcome!

@@ -2,23 +2,23 @@ package ldapserver
 
 import "bytes"
 
-// SearchRequest ::= [APPLICATION 3] SEQUENCE {
-// 		baseObject      LDAPDN,
-// 		scope           ENUMERATED {
-// 		 	baseObject              (0),
-// 		 	singleLevel             (1),
-// 		 	wholeSubtree            (2),
-// 		 	...  },
-// 		derefAliases    ENUMERATED {
-// 		 	neverDerefAliases       (0),
-// 		 	derefInSearching        (1),
-// 		 	derefFindingBaseObj     (2),
-// 		 	derefAlways             (3) },
-// 		sizeLimit       INTEGER (0 ..  maxInt),
-// 		timeLimit       INTEGER (0 ..  maxInt),
-// 		typesOnly       BOOLEAN,
-// 		filter          Filter,
-// 		attributes      AttributeSelection }
+//	SearchRequest ::= [APPLICATION 3] SEQUENCE {
+//			baseObject      LDAPDN,
+//			scope           ENUMERATED {
+//			 	baseObject              (0),
+//			 	singleLevel             (1),
+//			 	wholeSubtree            (2),
+//			 	...  },
+//			derefAliases    ENUMERATED {
+//			 	neverDerefAliases       (0),
+//			 	derefInSearching        (1),
+//			 	derefFindingBaseObj     (2),
+//			 	derefAlways             (3) },
+//			sizeLimit       INTEGER (0 ..  maxInt),
+//			timeLimit       INTEGER (0 ..  maxInt),
+//			typesOnly       BOOLEAN,
+//			filter          Filter,
+//			attributes      AttributeSelection }
 type SearchRequest struct {
 	BaseObject   string
 	Scope        SearchScope
@@ -36,6 +36,8 @@ const (
 	SearchScopeBaseObject   SearchScope = 0
 	SearchScopeSingleLevel  SearchScope = 1
 	SearchScopeWholeSubtree SearchScope = 2
+	// Defined in a draft, not always supported
+	SearchScopeSubordinateSubtree SearchScope = 3
 	// extensible, more possible
 )
 
@@ -49,12 +51,14 @@ const (
 )
 
 // SearchResultReference ::= [APPLICATION 19] SEQUENCE
-//                           SIZE (1..MAX) OF uri URI
+//
+//	SIZE (1..MAX) OF uri URI
 type SearchResultReference []string
 
-// SearchResultEntry ::= [APPLICATION 4] SEQUENCE {
-// 		objectName      LDAPDN,
-// 		attributes      PartialAttributeList }
+//	SearchResultEntry ::= [APPLICATION 4] SEQUENCE {
+//			objectName      LDAPDN,
+//			attributes      PartialAttributeList }
+//
 // PartialAttributeList ::= SEQUENCE OF partialAttribute PartialAttribute
 type SearchResultEntry struct {
 	ObjectName string

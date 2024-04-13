@@ -14,6 +14,8 @@ const (
 	FilterTypePresent         uint8 = 7
 	FilterTypeApproxMatch     uint8 = 8
 	FilterTypeExtensibleMatch uint8 = 9
+	FilterTypeAbsoluteTrue    uint8 = 0xa0
+	FilterTypeAbsoluteFalse   uint8 = 0xa1
 )
 
 //	Filter ::= CHOICE {
@@ -33,29 +35,29 @@ type Filter struct {
 	Data any
 }
 
-// SubstringFilter ::= SEQUENCE {
-// 		type           AttributeDescription,
-// 		substrings     SEQUENCE SIZE (1..MAX) OF substring CHOICE {
-// 		 	initial [0] AssertionValue,  -- can occur at most once
-// 		 	any     [1] AssertionValue,
-// 		 	final   [2] AssertionValue } -- can occur at most once
-// 		}
+//	SubstringFilter ::= SEQUENCE {
+//			type           AttributeDescription,
+//			substrings     SEQUENCE SIZE (1..MAX) OF substring CHOICE {
+//			 	initial [0] AssertionValue,  -- can occur at most once
+//			 	any     [1] AssertionValue,
+//			 	final   [2] AssertionValue } -- can occur at most once
+//			}
 type SubstringFilter struct {
-	Type    string
-	Initial string
-	Any     []string
-	Final   string
+	Attribute string
+	Initial   string
+	Any       []string
+	Final     string
 }
 
-// MatchingRuleAssertion ::= SEQUENCE {
-// 		matchingRule    [1] MatchingRuleId OPTIONAL,
-// 		type            [2] AttributeDescription OPTIONAL,
-// 		matchValue      [3] AssertionValue,
-// 		dnAttributes    [4] BOOLEAN DEFAULT FALSE }
+//	MatchingRuleAssertion ::= SEQUENCE {
+//			matchingRule    [1] MatchingRuleId OPTIONAL,
+//			type            [2] AttributeDescription OPTIONAL,
+//			matchValue      [3] AssertionValue,
+//			dnAttributes    [4] BOOLEAN DEFAULT FALSE }
 type MatchingRuleAssertion struct {
 	MatchingRule string
-	Type         string
-	MatchValue   string
+	Attribute    string
+	Value        string
 	DNAttributes bool
 }
 
@@ -64,10 +66,17 @@ func GetFilter(raw BerRawElement) (*Filter, error) {
 	if raw.Type.Class() != BerClassContextSpecific {
 		return nil, ErrWrongElementType.WithInfo("Filter type", raw.Type)
 	}
-	f := &Filter{
-		Type: raw.Type.TagNumber(),
+	ftype := raw.Type.TagNumber()
+	switch {
+	case raw.Type == BerContextSpecificType(0, true) && len(raw.Data) == 0:
+		ftype = FilterTypeAbsoluteTrue
+	case raw.Type == BerContextSpecificType(1, true) && len(raw.Data) == 0:
+		ftype = FilterTypeAbsoluteFalse
 	}
-	switch f.Type {
+	f := &Filter{
+		Type: ftype,
+	}
+	switch ftype {
 	case FilterTypeAnd, FilterTypeOr:
 		var filters []Filter
 		seq, err := BerGetSequence(raw.Data)
@@ -109,7 +118,7 @@ func GetFilter(raw BerRawElement) (*Filter, error) {
 		if seq[0].Type != BerTypeOctetString {
 			return nil, ErrWrongElementType.WithInfo("SubstringFilter type type", seq[0].Type)
 		}
-		sf := &SubstringFilter{Type: BerGetOctetString(seq[0].Data)}
+		sf := &SubstringFilter{Attribute: BerGetOctetString(seq[0].Data)}
 		if seq[1].Type != BerTypeSequence {
 			return nil, ErrWrongElementType.WithInfo("SubstringFilter substrings type", seq[1].Type)
 		}
@@ -148,24 +157,24 @@ func GetFilter(raw BerRawElement) (*Filter, error) {
 		}
 		m := MatchingRuleAssertion{}
 		i := 0
-		if len(seq) > i && seq[i].Type == BerContextSpecificType(0, false) {
+		if len(seq) > i && seq[i].Type == BerContextSpecificType(1, false) {
 			m.MatchingRule = BerGetOctetString(seq[i].Data)
 			i++
 		}
-		if len(seq) > i && seq[i].Type == BerContextSpecificType(1, false) {
-			m.Type = BerGetOctetString(seq[i].Data)
+		if len(seq) > i && seq[i].Type == BerContextSpecificType(2, false) {
+			m.Attribute = BerGetOctetString(seq[i].Data)
 			i++
 		}
 		if len(seq) <= i || len(seq) > i+2 {
 			return nil, ErrWrongSequenceLength.WithInfo("MatchingRuleAssertion sequence length", len(seq))
 		}
-		if seq[i].Type != BerContextSpecificType(2, false) {
+		if seq[i].Type != BerContextSpecificType(3, false) {
 			return nil, ErrWrongElementType.WithInfo("MatchingRuleAssertion matchValue type", seq[i].Type)
 		}
-		m.MatchValue = BerGetOctetString(seq[i].Data)
+		m.Value = BerGetOctetString(seq[i].Data)
 		i++
 		if i < len(seq) {
-			if seq[i].Type != BerContextSpecificType(3, false) {
+			if seq[i].Type != BerContextSpecificType(4, false) {
 				return nil, ErrWrongElementType.WithInfo("MatchingRuleAssertion dnAttributes type", seq[i].Type)
 			}
 			dna, err := BerGetBoolean(seq[i].Data)
@@ -174,6 +183,7 @@ func GetFilter(raw BerRawElement) (*Filter, error) {
 			}
 			m.DNAttributes = dna
 		}
+		f.Data = &m
 	default:
 		f.Data = &raw
 	}
