@@ -29,6 +29,16 @@ type TestHandler struct {
 	abandonmentLock sync.Mutex
 }
 
+func getAuth(conn *ldapserver.Conn) string {
+	auth := ""
+	if conn.Authentication != nil {
+		if authstr, ok := conn.Authentication.(string); ok {
+			auth = authstr
+		}
+	}
+	return auth
+}
+
 func (t *TestHandler) Abandon(conn *ldapserver.Conn, msg *ldapserver.Message, messageID ldapserver.MessageID) {
 	t.abandonmentLock.Lock()
 	if _, exists := t.abandonment[messageID]; exists {
@@ -76,6 +86,71 @@ func (t *TestHandler) Bind(conn *ldapserver.Conn, msg *ldapserver.Message, req *
 	conn.SendResult(msg.MessageID, nil, ldapserver.TypeBindResponseOp, res)
 }
 
+func (t *TestHandler) Compare(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.CompareRequest) {
+	// Allow cancellation
+	t.abandonment[msg.MessageID] = false
+	defer func() {
+		t.abandonmentLock.Lock()
+		delete(t.abandonment, msg.MessageID)
+		t.abandonmentLock.Unlock()
+	}()
+	auth := getAuth(conn)
+	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
+		log.Println("Not an authorized connection!", auth)
+		conn.SendResult(msg.MessageID, nil, ldapserver.TypeCompareResponseOp, ldapserver.PermissionDenied)
+		return
+	}
+	// Pretend to take a while
+	time.Sleep(time.Second * 2)
+	log.Println("Compare DN:", req.Object)
+	log.Println("  Attribute:", req.Attribute)
+	log.Println("  Value:", req.Value)
+	if t.abandonment[msg.MessageID] {
+		log.Println("Abandoning compare request")
+		return
+	}
+	res := &ldapserver.Result{
+		ResultCode: ldapserver.LDAPResultCompareTrue,
+	}
+	conn.SendResult(msg.MessageID, nil, ldapserver.TypeCompareResponseOp, res)
+}
+
+func (t *TestHandler) Modify(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.ModifyRequest) {
+	auth := getAuth(conn)
+	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
+		log.Println("Not an authorized connection!", auth)
+		conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyResponseOp, ldapserver.PermissionDenied)
+		return
+	}
+	log.Println("Modify DN:", req.Object)
+	for _, change := range req.Changes {
+		log.Println("  Operation:", change.Operation)
+		log.Println("  Modification attribute:", change.Modification.Description)
+		log.Println("  Values:", change.Modification.Values)
+	}
+	res := &ldapserver.Result{
+		ResultCode: ldapserver.ResultSuccess,
+	}
+	conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyResponseOp, res)
+}
+
+func (t *TestHandler) ModifyDN(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.ModifyDNRequest) {
+	auth := getAuth(conn)
+	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
+		log.Println("Not an authorized connection!", auth)
+		conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyResponseOp, ldapserver.PermissionDenied)
+		return
+	}
+	log.Println("Modify DN:", req.Object)
+	log.Println("  New RDN:", req.NewRDN)
+	log.Println("  Delete old RDN:", req.DeleteOldRDN)
+	log.Println("  New superior:", req.NewSuperior)
+	res := &ldapserver.Result{
+		ResultCode: ldapserver.ResultSuccess,
+	}
+	conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyDNResponseOp, res)
+}
+
 func (t *TestHandler) Search(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.SearchRequest) {
 	// Allow cancellation
 	t.abandonment[msg.MessageID] = false
@@ -85,11 +160,11 @@ func (t *TestHandler) Search(conn *ldapserver.Conn, msg *ldapserver.Message, req
 		t.abandonmentLock.Unlock()
 	}()
 
-	auth := ""
-	if conn.Authentication != nil {
-		if authstr, ok := conn.Authentication.(string); ok {
-			auth = authstr
-		}
+	auth := getAuth(conn)
+	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
+		log.Println("Not an authorized connection!", auth)
+		conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyResponseOp, ldapserver.PermissionDenied)
+		return
 	}
 	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
 		log.Println("Not an authorized connection!", auth)
@@ -142,28 +217,4 @@ func (t *TestHandler) Search(conn *ldapserver.Conn, msg *ldapserver.Message, req
 		ResultCode: ldapserver.ResultSuccess,
 	}
 	conn.SendResult(msg.MessageID, nil, ldapserver.TypeSearchResultDoneOp, res)
-}
-
-func (t *TestHandler) Modify(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.ModifyRequest) {
-	log.Println("Modify DN:", req.Object)
-	for _, change := range req.Changes {
-		log.Println("  Operation:", change.Operation)
-		log.Println("  Modification attribute:", change.Modification.Description)
-		log.Println("  Values:", change.Modification.Values)
-	}
-	res := &ldapserver.Result{
-		ResultCode: ldapserver.ResultSuccess,
-	}
-	conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyResponseOp, res)
-}
-
-func (t *TestHandler) ModifyDN(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.ModifyDNRequest) {
-	log.Println("Modify DN:", req.Object)
-	log.Println("  New RDN:", req.NewRDN)
-	log.Println("  Delete old RDN:", req.DeleteOldRDN)
-	log.Println("  New superior:", req.NewSuperior)
-	res := &ldapserver.Result{
-		ResultCode: ldapserver.ResultSuccess,
-	}
-	conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyDNResponseOp, res)
 }

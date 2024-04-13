@@ -175,7 +175,17 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 		s.Handler.Bind(conn, msg, req)
 	case TypeCompareRequestOp:
 		log.Println("Compare request")
-		conn.SendResult(msg.MessageID, nil, TypeCompareResponseOp, UnsupportedOperation)
+		req, err := GetCompareRequest(msg.ProtocolOp.Data)
+		if err != nil {
+			log.Println("Error parsing Compare request:", err)
+			conn.SendResult(msg.MessageID, nil, TypeCompareResponseOp, ProtocolError)
+			return
+		}
+		conn.asyncOperations.Add(1)
+		go func() {
+			defer conn.asyncOperations.Done()
+			s.Handler.Compare(conn, msg, req)
+		}()
 	case TypeDeleteRequestOp:
 		log.Println("Delete request")
 		conn.SendResult(msg.MessageID, nil, TypeDeleteResponseOp, UnsupportedOperation)

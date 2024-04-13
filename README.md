@@ -192,7 +192,7 @@ See `test/main.go` for an example.
 - [x] Abandon request
 - [x] Add request
 - [x] Bind request
-- [ ] Compare request
+- [x] Compare request (concurrent)
 - [x] Extended requests
 - [x] Modify request
 - [x] ModifyDN request

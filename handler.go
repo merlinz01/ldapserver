@@ -14,6 +14,8 @@ type Handler interface {
 	Add(*Conn, *Message, *AddRequest)
 	// Perform a Bind request
 	Bind(*Conn, *Message, *BindRequest)
+	// Perform a Compare request
+	Compare(*Conn, *Message, *CompareRequest)
 	// Perform an Extended request
 	Extended(*Conn, *Message, *ExtendedRequest)
 	// Perform a Modify request
@@ -40,6 +42,10 @@ func (*BaseHandler) Add(conn *Conn, msg *Message, req *AddRequest) {
 
 func (*BaseHandler) Bind(conn *Conn, msg *Message, req *BindRequest) {
 	conn.SendResult(msg.MessageID, nil, TypeBindResponseOp, UnsupportedOperation)
+}
+
+func (*BaseHandler) Compare(conn *Conn, msg *Message, req *CompareRequest) {
+	conn.SendResult(msg.MessageID, nil, TypeCompareResponseOp, UnsupportedOperation)
 }
 
 func (*BaseHandler) Modify(conn *Conn, msg *Message, req *ModifyRequest) {
