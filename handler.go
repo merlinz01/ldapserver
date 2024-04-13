@@ -24,6 +24,8 @@ type Handler interface {
 	ModifyDN(*Conn, *Message, *ModifyDNRequest)
 	// Perform a Search request
 	Search(*Conn, *Message, *SearchRequest)
+	// Handle unrecognized requests
+	Other(*Conn, *Message)
 }
 
 // Basic server functionality.
@@ -103,4 +105,8 @@ func (*BaseHandler) StartTLS(conn *Conn, msg *Message) {
 		return
 	}
 	conn.SendResult(msg.MessageID, nil, TypeExtendedResponseOp, &res)
+}
+
+func (*BaseHandler) Other(conn *Conn, msg *Message) {
+	conn.SendResult(msg.MessageID, nil, BerTypeSequence, UnsupportedOperation)
 }

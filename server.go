@@ -246,6 +246,6 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 		conn.Close()
 	default:
 		log.Println("Unknown operation type:", msg.ProtocolOp.Type)
-		conn.SendResult(msg.MessageID, nil, BerTypeSequence, UnsupportedOperation)
+		s.Handler.Other(conn, msg)
 	}
 }
