@@ -36,10 +36,12 @@ func getAuth(conn *ldapserver.Conn) string {
 			auth = authstr
 		}
 	}
+	log.Println("Authentication:", auth)
 	return auth
 }
 
 func (t *TestHandler) Abandon(conn *ldapserver.Conn, msg *ldapserver.Message, messageID ldapserver.MessageID) {
+	log.Println("Abandon request")
 	t.abandonmentLock.Lock()
 	if _, exists := t.abandonment[messageID]; exists {
 		t.abandonment[messageID] = true
@@ -48,6 +50,7 @@ func (t *TestHandler) Abandon(conn *ldapserver.Conn, msg *ldapserver.Message, me
 }
 
 func (t *TestHandler) Add(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.AddRequest) {
+	log.Println("Add request")
 	auth := getAuth(conn)
 	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
 		log.Println("Not an authorized connection!", auth)
@@ -66,6 +69,7 @@ func (t *TestHandler) Add(conn *ldapserver.Conn, msg *ldapserver.Message, req *l
 }
 
 func (t *TestHandler) Bind(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.BindRequest) {
+	log.Println("Bind request")
 	res := &ldapserver.BindResponse{}
 	if req.Version != 3 {
 		res.ResultCode = ldapserver.LDAPResultProtocolError
@@ -105,6 +109,7 @@ func (t *TestHandler) Bind(conn *ldapserver.Conn, msg *ldapserver.Message, req *
 }
 
 func (t *TestHandler) Compare(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.CompareRequest) {
+	log.Println("Compare request")
 	// Allow cancellation
 	t.abandonment[msg.MessageID] = false
 	defer func() {
@@ -134,6 +139,7 @@ func (t *TestHandler) Compare(conn *ldapserver.Conn, msg *ldapserver.Message, re
 }
 
 func (t *TestHandler) Delete(conn *ldapserver.Conn, msg *ldapserver.Message, dn string) {
+	log.Println("Delete request")
 	auth := getAuth(conn)
 	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
 		log.Println("Not an authorized connection!", auth)
@@ -148,6 +154,7 @@ func (t *TestHandler) Delete(conn *ldapserver.Conn, msg *ldapserver.Message, dn 
 }
 
 func (t *TestHandler) Modify(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.ModifyRequest) {
+	log.Println("Modify request")
 	auth := getAuth(conn)
 	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
 		log.Println("Not an authorized connection!", auth)
@@ -167,16 +174,17 @@ func (t *TestHandler) Modify(conn *ldapserver.Conn, msg *ldapserver.Message, req
 }
 
 func (t *TestHandler) ModifyDN(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.ModifyDNRequest) {
+	log.Println("Modify DN request")
 	auth := getAuth(conn)
 	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
 		log.Println("Not an authorized connection!", auth)
 		conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyResponseOp, ldapserver.PermissionDenied)
 		return
 	}
-	log.Println("Modify DN:", req.Object)
-	log.Println("  New RDN:", req.NewRDN)
-	log.Println("  Delete old RDN:", req.DeleteOldRDN)
-	log.Println("  New superior:", req.NewSuperior)
+	log.Println("Old DN:", req.Object)
+	log.Println("New RDN:", req.NewRDN)
+	log.Println("Delete old RDN:", req.DeleteOldRDN)
+	log.Println("New superior:", req.NewSuperior)
 	res := &ldapserver.Result{
 		ResultCode: ldapserver.ResultSuccess,
 	}
@@ -184,6 +192,7 @@ func (t *TestHandler) ModifyDN(conn *ldapserver.Conn, msg *ldapserver.Message, r
 }
 
 func (t *TestHandler) Search(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.SearchRequest) {
+	log.Println("Search request")
 	// Allow cancellation
 	t.abandonment[msg.MessageID] = false
 	defer func() {
@@ -237,11 +246,14 @@ func (t *TestHandler) Search(conn *ldapserver.Conn, msg *ldapserver.Message, req
 		// Pretend to take a while
 		time.Sleep(time.Second * 3)
 		entry := &ldapserver.SearchResultEntry{
-			ObjectName: req.BaseObject,
+			ObjectName: fmt.Sprintf("uid=jdoe%d,%s", i, req.BaseObject),
 			Attributes: []ldapserver.Attribute{
-				{Description: "givenname", Values: []string{fmt.Sprintf("John Doe %d", i)}},
+				{Description: "uid", Values: []string{fmt.Sprintf("jdoe%d", i)}},
+				{Description: "givenname", Values: []string{fmt.Sprintf("John %d", i)}},
+				{Description: "sn", Values: []string{"Doe"}},
 			},
 		}
+		log.Println("Sending entry", i)
 		conn.SendResult(msg.MessageID, nil, ldapserver.TypeSearchResultEntryOp, entry)
 	}
 
@@ -252,6 +264,7 @@ func (t *TestHandler) Search(conn *ldapserver.Conn, msg *ldapserver.Message, req
 }
 
 func (t *TestHandler) Extended(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.ExtendedRequest) {
+	log.Println("Extended request with OID", req.Name)
 	switch req.Name {
 	case ldapserver.OIDPasswordModify:
 		log.Println("Password modify")
@@ -260,6 +273,7 @@ func (t *TestHandler) Extended(conn *ldapserver.Conn, msg *ldapserver.Message, r
 		res.ResultCode = ldapserver.ResultSuccess
 		conn.SendResult(msg.MessageID, nil, ldapserver.TypeExtendedResponseOp, res)
 	default:
+		log.Println("Passing request to base handler")
 		t.BaseHandler.Extended(conn, msg, req)
 	}
 }

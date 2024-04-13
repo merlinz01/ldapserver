@@ -1,7 +1,7 @@
 # ldapserver
 
-A LDAPv3 server framework for custom integrations or full-blown LDAP servers.
-Zero external dependencies.
+A LDAPv3 server framework for custom integrations or full-blown LDAP servers, with no external dependencies.
+Focus on the logic of your integration and forget the low-level details.
 
 ```
 go get github.com/merlinz01/ldapserver

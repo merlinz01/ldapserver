@@ -1,3 +1,4 @@
+// These tests are based on the examples in the reference guide on ldap.com.
 package ldapserver_test
 
 import (

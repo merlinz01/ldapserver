@@ -73,7 +73,6 @@ func (*BaseHandler) Search(conn *Conn, msg *Message, req *SearchRequest) {
 func (h *BaseHandler) Extended(conn *Conn, msg *Message, req *ExtendedRequest) {
 	switch req.Name {
 	case OIDStartTLS:
-		log.Println("Start TLS request")
 		h.StartTLS(conn, msg)
 	default:
 		log.Println("Unknown extended request:", req.Name)
@@ -96,7 +95,7 @@ func (*BaseHandler) StartTLS(conn *Conn, msg *Message) {
 	err := conn.StartTLS()
 	switch {
 	case err == nil:
-		log.Println("StartTLS succeeded")
+		// pass
 	case errors.Is(err, ErrTLSNotAvailable):
 		log.Println("TLS not available for StartTLS")
 		res.ResultCode = LDAPResultUnwillingToPerform

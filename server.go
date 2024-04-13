@@ -119,7 +119,7 @@ func (s *LDAPServer) handleConnection(c net.Conn) {
 	}
 	for {
 		if ldapConn.closed {
-			log.Println("LDAP connection closed, discarding")
+			// Close() called
 			return
 		}
 		msg, err := ldapConn.ReadMessage()
@@ -146,16 +146,13 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 	}
 	switch msg.ProtocolOp.Type {
 	case TypeAbandonRequestOp:
-		log.Println("Abandon request")
 		messageID, err := BerGetInteger(msg.ProtocolOp.Data)
 		if err != nil || messageID < 0 || messageID > 2147483647 {
 			log.Println("Invalid Abandon request:", err, messageID)
 			return
 		}
 		s.Handler.Abandon(conn, msg, MessageID(messageID))
-		return
 	case TypeAddRequestOp:
-		log.Println("Add request")
 		req, err := GetAddRequest(msg.ProtocolOp.Data)
 		if err != nil {
 			log.Println("Error parsing Add request:", err)
@@ -168,7 +165,6 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 			s.Handler.Add(conn, msg, req)
 		}()
 	case TypeBindRequestOp:
-		log.Println("Bind request")
 		req, err := GetBindRequest(msg.ProtocolOp.Data)
 		if err != nil {
 			log.Println("Error parsing Bind request:", err)
@@ -178,7 +174,6 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 		conn.asyncOperations.Wait()
 		s.Handler.Bind(conn, msg, req)
 	case TypeCompareRequestOp:
-		log.Println("Compare request")
 		req, err := GetCompareRequest(msg.ProtocolOp.Data)
 		if err != nil {
 			log.Println("Error parsing Compare request:", err)
@@ -191,7 +186,6 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 			s.Handler.Compare(conn, msg, req)
 		}()
 	case TypeDeleteRequestOp:
-		log.Println("Delete request")
 		dn := BerGetOctetString(msg.ProtocolOp.Data)
 		conn.asyncOperations.Add(1)
 		go func() {
@@ -199,16 +193,15 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 			s.Handler.Delete(conn, msg, dn)
 		}()
 	case TypeExtendedRequestOp:
-		log.Println("Extended request")
 		req, err := GetExtendedRequest(msg.ProtocolOp.Data)
 		if err != nil {
 			log.Println("Error parsing Extended request:", err)
 			conn.SendResult(msg.MessageID, nil, TypeExtendedResponseOp, &ExtendedResult{Result: *ProtocolError})
 			return
 		}
+		// This is not concurrent in case it is a StartTLS request
 		s.Handler.Extended(conn, msg, req)
 	case TypeModifyRequestOp:
-		log.Println("Modify request")
 		req, err := GetModifyRequest(msg.ProtocolOp.Data)
 		if err != nil {
 			log.Println("Error parsing Modify request:", err)
@@ -221,7 +214,6 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 			s.Handler.Modify(conn, msg, req)
 		}()
 	case TypeModifyDNRequestOp:
-		log.Println("ModifyDN request")
 		req, err := GetModifyDNRequest(msg.ProtocolOp.Data)
 		if err != nil {
 			log.Println("Error parsing ModifyDN request:", err)
@@ -234,7 +226,6 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 			s.Handler.ModifyDN(conn, msg, req)
 		}()
 	case TypeSearchRequestOp:
-		log.Println("Search request")
 		req, err := GetSearchRequest(msg.ProtocolOp.Data)
 		if err != nil {
 			log.Println("Error parsing Search request:", err)
@@ -247,10 +238,11 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 			s.Handler.Search(conn, msg, req)
 		}()
 	case TypeUnbindRequestOp:
-		log.Println("Unbind request")
+		// Unbind has no result
+		// Simply close the connection
 		conn.Close()
 	default:
-		log.Println("Unknown operation type:", msg.ProtocolOp.Type)
+		// Let the handler deal with it if it knows how
 		s.Handler.Other(conn, msg)
 	}
 }
