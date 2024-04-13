@@ -199,6 +199,7 @@ See `test/main.go` for an example.
 - [x] Search request (concurrent)
 - [x] StartTLS request
 - [x] Unbind request
+- [x] Intermediate response
 - [x] Unsolicited notifications
 - [x] Notice of disconnection
 

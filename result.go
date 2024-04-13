@@ -57,18 +57,26 @@ const (
 	// extensible, more codes possible
 )
 
-// LDAPResult ::= SEQUENCE {
-// 		resultCode         ENUMERATED {
-//          -- Defined result codes --
-// 			...  },
-//      matchedDN          LDAPDN,
-//      diagnosticMessage  LDAPString,
-//      referral           [3] Referral OPTIONAL }
+//	LDAPResult ::= SEQUENCE {
+//			resultCode         ENUMERATED {
+//	         -- Defined result codes --
+//				...  },
+//	     matchedDN          LDAPDN,
+//	     diagnosticMessage  LDAPString,
+//	     referral           [3] Referral OPTIONAL }
 type Result struct {
 	ResultCode        LDAPResultCode
 	MatchedDN         string
 	DiagnosticMessage string
 	Referral          []string
+}
+
+//	IntermediateResponse ::= [APPLICATION 25] SEQUENCE {
+//	     responseName     [0] LDAPOID OPTIONAL,
+//	     responseValue    [1] OCTET STRING OPTIONAL }
+type IntermediateResponse struct {
+	Name  string
+	Value string
 }
 
 // Return a Result from BER-encoded data
@@ -132,6 +140,19 @@ func (r *Result) Encode() []byte {
 		w.Write(BerEncodeSequence(referrals.Bytes()))
 	}
 	return w.Bytes()
+}
+
+// Return the BER-encoded struct (without element header)
+func (r *IntermediateResponse) Encode() []byte {
+	w := bytes.NewBuffer(nil)
+	if r.Name != "" {
+		w.Write(BerEncodeElement(BerContextSpecificType(0, false), BerEncodeOctetString(r.Name)))
+	}
+	if r.Value != "" {
+		w.Write(BerEncodeElement(BerContextSpecificType(1, false), BerEncodeOctetString(r.Value)))
+	}
+	return w.Bytes()
+
 }
 
 // Result returned for protocol errors
