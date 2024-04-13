@@ -194,8 +194,8 @@ See `test/main.go` for an example.
 - [x] Bind request
 - [ ] Compare request
 - [x] Extended requests
-- [ ] Modify request
-- [ ] ModifyDN request
+- [x] Modify request
+- [x] ModifyDN request
 - [x] Search request (concurrent)
 - [x] StartTLS request
 - [x] Unbind request

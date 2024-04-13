@@ -16,6 +16,10 @@ type Handler interface {
 	Bind(*Conn, *Message, *BindRequest)
 	// Perform an Extended request
 	Extended(*Conn, *Message, *ExtendedRequest)
+	// Perform a Modify request
+	Modify(*Conn, *Message, *ModifyRequest)
+	// Perform a ModifyDN request
+	ModifyDN(*Conn, *Message, *ModifyDNRequest)
 	// Perform a Search request
 	Search(*Conn, *Message, *SearchRequest)
 }
@@ -36,6 +40,14 @@ func (*BaseHandler) Add(conn *Conn, msg *Message, req *AddRequest) {
 
 func (*BaseHandler) Bind(conn *Conn, msg *Message, req *BindRequest) {
 	conn.SendResult(msg.MessageID, nil, TypeBindResponseOp, UnsupportedOperation)
+}
+
+func (*BaseHandler) Modify(conn *Conn, msg *Message, req *ModifyRequest) {
+	conn.SendResult(msg.MessageID, nil, TypeModifyResponseOp, UnsupportedOperation)
+}
+
+func (*BaseHandler) ModifyDN(conn *Conn, msg *Message, req *ModifyDNRequest) {
+	conn.SendResult(msg.MessageID, nil, TypeModifyDNResponseOp, UnsupportedOperation)
 }
 
 func (*BaseHandler) Search(conn *Conn, msg *Message, req *SearchRequest) {

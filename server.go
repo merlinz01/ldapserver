@@ -190,10 +190,22 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 		s.Handler.Extended(conn, msg, req)
 	case TypeModifyDNRequestOp:
 		log.Println("ModifyDN request")
-		conn.SendResult(msg.MessageID, nil, TypeModifyDNResponseOp, UnsupportedOperation)
+		req, err := GetModifyDNRequest(msg.ProtocolOp.Data)
+		if err != nil {
+			log.Println("Error parsing ModifyDN request:", err)
+			conn.SendResult(msg.MessageID, nil, TypeModifyDNResponseOp, ProtocolError)
+			return
+		}
+		s.Handler.ModifyDN(conn, msg, req)
 	case TypeModifyRequestOp:
 		log.Println("Modify request")
-		conn.SendResult(msg.MessageID, nil, TypeModifyResponseOp, UnsupportedOperation)
+		req, err := GetModifyRequest(msg.ProtocolOp.Data)
+		if err != nil {
+			log.Println("Error parsing Modify request:", err)
+			conn.SendResult(msg.MessageID, nil, TypeModifyResponseOp, ProtocolError)
+			return
+		}
+		s.Handler.Modify(conn, msg, req)
 	case TypeSearchRequestOp:
 		log.Println("Search request")
 		req, err := GetSearchRequest(msg.ProtocolOp.Data)
