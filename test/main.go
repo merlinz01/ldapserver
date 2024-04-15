@@ -43,14 +43,18 @@ type TestHandler struct {
 	abandonmentLock sync.Mutex
 }
 
-func getAuth(conn *ldapserver.Conn) string {
-	auth := ""
+func getAuth(conn *ldapserver.Conn) ldapserver.DN {
+	var auth ldapserver.DN
 	if conn.Authentication != nil {
-		if authstr, ok := conn.Authentication.(string); ok {
-			auth = authstr
+		if authdn, ok := conn.Authentication.(ldapserver.DN); ok {
+			auth = authdn
 		}
 	}
-	log.Println("Authentication:", auth)
+	// To make sure we can do a nil check
+	if len(auth) == 0 {
+		auth = nil
+	}
+	log.Println("Currently authenticated as:", auth)
 	return auth
 }
 
@@ -66,7 +70,7 @@ func (t *TestHandler) Abandon(conn *ldapserver.Conn, msg *ldapserver.Message, me
 func (t *TestHandler) Add(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.AddRequest) {
 	log.Println("Add request")
 	auth := getAuth(conn)
-	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
+	if !auth.Equal(theOnlyAuthorizedUser) {
 		log.Println("Not an authorized connection!", auth)
 		conn.SendResult(msg.MessageID, nil, ldapserver.TypeAddResponseOp,
 			ldapserver.ResultInsufficientAccessRights.AsResult(
@@ -84,18 +88,36 @@ func (t *TestHandler) Add(conn *ldapserver.Conn, msg *ldapserver.Message, req *l
 	conn.SendResult(msg.MessageID, nil, ldapserver.TypeAddResponseOp, res)
 }
 
+var theOnlyAuthorizedUser = ldapserver.MustParseDN("uid=authorizeduser,ou=users,dc=example,dc=com")
+
+func (t *TestHandler) checkPassword(dn ldapserver.DN, password string) bool {
+	if dn.Equal(theOnlyAuthorizedUser) {
+		return password == "averyweakpassword"
+	}
+	return false
+}
+
 func (t *TestHandler) Bind(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.BindRequest) {
 	log.Println("Bind request")
 	res := &ldapserver.BindResult{}
+	dn, err := ldapserver.ParseDN(req.Name)
+	if err != nil {
+		log.Println("Error parsing DN:", err)
+		res.ResultCode = ldapserver.ResultInvalidDNSyntax
+		res.DiagnosticMessage = "the provided DN is invalid"
+		conn.SendResult(msg.MessageID, nil, ldapserver.TypeBindResponseOp, res)
+		return
+	}
+	start := time.Now()
 	switch req.AuthType {
 	case ldapserver.AuthenticationTypeSimple:
-		log.Println("Simple authentication:", req.Name, req.Credentials.(string))
-		if req.Credentials.(string) != "weakpassword" {
+		log.Printf("Simple authentication from %s for \"%s\"\n", conn.Conn.LocalAddr(), req.Name)
+		if t.checkPassword(dn, req.Credentials.(string)) {
+			conn.Authentication = dn
+			res.ResultCode = ldapserver.ResultSuccess
+		} else {
 			conn.Authentication = nil
 			res.ResultCode = ldapserver.ResultInvalidCredentials
-		} else {
-			conn.Authentication = req.Name
-			res.ResultCode = ldapserver.ResultSuccess
 		}
 	case ldapserver.AuthenticationTypeSASL:
 		creds := req.Credentials.(*ldapserver.SASLCredentials)
@@ -116,6 +138,11 @@ func (t *TestHandler) Bind(conn *ldapserver.Conn, msg *ldapserver.Message, req *
 		res.ResultCode = ldapserver.ResultAuthMethodNotSupported
 		res.DiagnosticMessage = "the authentication method requested is not supported by this server"
 	}
+	// Make sure the response takes at least a second in order to prevent timing attacks
+	sofar := time.Since(start)
+	if sofar < time.Second {
+		time.Sleep(time.Second - sofar)
+	}
 	conn.SendResult(msg.MessageID, nil, ldapserver.TypeBindResponseOp, res)
 }
 
@@ -129,7 +156,7 @@ func (t *TestHandler) Compare(conn *ldapserver.Conn, msg *ldapserver.Message, re
 		t.abandonmentLock.Unlock()
 	}()
 	auth := getAuth(conn)
-	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
+	if !auth.Equal(theOnlyAuthorizedUser) {
 		log.Println("Not an authorized connection!", auth)
 		conn.SendResult(msg.MessageID, nil, ldapserver.TypeCompareResponseOp,
 			ldapserver.ResultInsufficientAccessRights.AsResult(
@@ -145,16 +172,14 @@ func (t *TestHandler) Compare(conn *ldapserver.Conn, msg *ldapserver.Message, re
 		log.Println("Abandoning compare request")
 		return
 	}
-	res := &ldapserver.Result{
-		ResultCode: ldapserver.ResultCompareTrue,
-	}
-	conn.SendResult(msg.MessageID, nil, ldapserver.TypeCompareResponseOp, res)
+	conn.SendResult(msg.MessageID, nil, ldapserver.TypeCompareResponseOp,
+		ldapserver.ResultCompareTrue.AsResult(""))
 }
 
 func (t *TestHandler) Delete(conn *ldapserver.Conn, msg *ldapserver.Message, dn string) {
 	log.Println("Delete request")
 	auth := getAuth(conn)
-	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
+	if !auth.Equal(theOnlyAuthorizedUser) {
 		log.Println("Not an authorized connection!", auth)
 		conn.SendResult(msg.MessageID, nil, ldapserver.TypeDeleteResponseOp,
 			ldapserver.ResultInsufficientAccessRights.AsResult(
@@ -162,16 +187,14 @@ func (t *TestHandler) Delete(conn *ldapserver.Conn, msg *ldapserver.Message, dn 
 		return
 	}
 	log.Println("Delete DN:", dn)
-	res := &ldapserver.Result{
-		ResultCode: ldapserver.ResultSuccess,
-	}
-	conn.SendResult(msg.MessageID, nil, ldapserver.TypeDeleteResponseOp, res)
+	conn.SendResult(msg.MessageID, nil, ldapserver.TypeDeleteResponseOp,
+		ldapserver.ResultSuccess.AsResult("the entry was successfully deleted"))
 }
 
 func (t *TestHandler) Modify(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.ModifyRequest) {
 	log.Println("Modify request")
 	auth := getAuth(conn)
-	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
+	if !auth.Equal(theOnlyAuthorizedUser) {
 		log.Println("Not an authorized connection!", auth)
 		conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyResponseOp,
 			ldapserver.ResultInsufficientAccessRights.AsResult(
@@ -184,16 +207,14 @@ func (t *TestHandler) Modify(conn *ldapserver.Conn, msg *ldapserver.Message, req
 		log.Println("  Modification attribute:", change.Modification.Description)
 		log.Println("  Values:", change.Modification.Values)
 	}
-	res := &ldapserver.Result{
-		ResultCode: ldapserver.ResultSuccess,
-	}
-	conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyResponseOp, res)
+	conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyResponseOp,
+		ldapserver.ResultSuccess.AsResult("the entry was successfully modified"))
 }
 
 func (t *TestHandler) ModifyDN(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.ModifyDNRequest) {
 	log.Println("Modify DN request")
 	auth := getAuth(conn)
-	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
+	if !auth.Equal(theOnlyAuthorizedUser) {
 		log.Println("Not an authorized connection!", auth)
 		conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyResponseOp,
 			ldapserver.ResultInsufficientAccessRights.AsResult(
@@ -204,10 +225,8 @@ func (t *TestHandler) ModifyDN(conn *ldapserver.Conn, msg *ldapserver.Message, r
 	log.Println("New RDN:", req.NewRDN)
 	log.Println("Delete old RDN:", req.DeleteOldRDN)
 	log.Println("New superior:", req.NewSuperior)
-	res := &ldapserver.Result{
-		ResultCode: ldapserver.ResultSuccess,
-	}
-	conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyDNResponseOp, res)
+	conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyDNResponseOp,
+		ldapserver.ResultSuccess.AsResult("the entry was successfully modified"))
 }
 
 func (t *TestHandler) Search(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.SearchRequest) {
@@ -221,16 +240,9 @@ func (t *TestHandler) Search(conn *ldapserver.Conn, msg *ldapserver.Message, req
 	}()
 
 	auth := getAuth(conn)
-	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
+	if !auth.Equal(theOnlyAuthorizedUser) {
 		log.Println("Not an authorized connection!", auth)
 		conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyResponseOp,
-			ldapserver.ResultInsufficientAccessRights.AsResult(
-				"the connection is not authorized to perform the requested operation"))
-		return
-	}
-	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
-		log.Println("Not an authorized connection!", auth)
-		conn.SendResult(msg.MessageID, nil, ldapserver.TypeSearchResultDoneOp,
 			ldapserver.ResultInsufficientAccessRights.AsResult(
 				"the connection is not authorized to perform the requested operation"))
 		return
@@ -280,10 +292,8 @@ func (t *TestHandler) Search(conn *ldapserver.Conn, msg *ldapserver.Message, req
 		conn.SendResult(msg.MessageID, nil, ldapserver.TypeSearchResultEntryOp, entry)
 	}
 
-	res := &ldapserver.Result{
-		ResultCode: ldapserver.ResultSuccess,
-	}
-	conn.SendResult(msg.MessageID, nil, ldapserver.TypeSearchResultDoneOp, res)
+	conn.SendResult(msg.MessageID, nil, ldapserver.TypeSearchResultDoneOp,
+		ldapserver.ResultSuccess.AsResult(""))
 }
 
 func (t *TestHandler) Extended(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.ExtendedRequest) {
