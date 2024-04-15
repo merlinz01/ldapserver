@@ -118,6 +118,7 @@ func (d DN) CommonSuperior(other DN) DN {
 // Returns the DN with the specified RDNAttribute added to the end.
 func (d DN) WithRDN(rdn RDN) DN {
 	new := make(DN, len(d), len(d)+1)
+	copy(new, d)
 	return append(new, rdn)
 }
 

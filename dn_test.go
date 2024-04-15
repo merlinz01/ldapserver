@@ -249,3 +249,37 @@ func TestDNCommonAncestor(t *testing.T) {
 		}
 	}
 }
+
+func TestDNWithRD(t *testing.T) {
+	type rdTest struct {
+		baseDN     string
+		rdnType    string
+		rdnValue   string
+		expectedDN string
+	}
+	rdTests := []rdTest{
+		{"", "dc", "com", "dc=com"},
+		{"dc=com", "dc", "example", "dc=example,dc=com"},
+		{"dc=example,dc=com", "ou", "users", "ou=users,dc=example,dc=com"},
+		{"ou=users,dc=example,dc=com", "uid", "jdoe", "uid=jdoe,ou=users,dc=example,dc=com"},
+		{"uid=jdoe,ou=users,dc=example,dc=com", "cn", "John Doe", "cn=John Doe,uid=jdoe,ou=users,dc=example,dc=com"},
+	}
+	for _, test := range rdTests {
+		baseDN, err := ldapserver.ParseDN(test.baseDN)
+		if err != nil {
+			t.Fatalf("Error parsing base DN: %s", err)
+		}
+		expectedDN, err := ldapserver.ParseDN(test.expectedDN)
+		if err != nil {
+			t.Fatalf("Error parsing expected DN: %s", err)
+		}
+		rdn := ldapserver.RDN{{test.rdnType, test.rdnValue}}
+		dn := baseDN.WithRDN(rdn)
+		if !dn.Equal(expectedDN) {
+			t.Errorf("Expected \"%s\", got \"%s\" for DN with RDN \"%s\" in base DN \"%s\"", expectedDN, dn, rdn, baseDN)
+		}
+		if !dn.Equal(baseDN.WithRDNAttribute(test.rdnType, test.rdnValue)) {
+			t.Errorf("Expected \"%s\", got \"%s\" for DN with RDN \"%s\" in base DN \"%s\"", expectedDN, dn, rdn, baseDN)
+		}
+	}
+}
