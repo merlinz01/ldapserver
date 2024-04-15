@@ -13,23 +13,24 @@ const (
 	// extensible, more possible
 )
 
-// SaslCredentials ::= SEQUENCE {
-//		mechanism	LDAPString,
-// 		credentials	OCTET STRING OPTIONAL }
+//	SaslCredentials ::= SEQUENCE {
+//			mechanism	LDAPString,
+//			credentials	OCTET STRING OPTIONAL }
 type SASLCredentials struct {
 	Mechanism   string
 	Credentials string
 }
 
-// BindRequest ::= [APPLICATION 0] SEQUENCE {
-// 		version         INTEGER (1 ..  127),
-// 		name            LDAPDN,
-// 		authentication	AuthenticationChoice }
-// AuthenticationChoice ::= CHOICE {
-// 		simple	[0] OCTET STRING,
-// 				-- 1 and 2 reserved
-// 		sasl    [3] SaslCredentials,
-// 		...  }
+//	BindRequest ::= [APPLICATION 0] SEQUENCE {
+//			version         INTEGER (1 ..  127),
+//			name            LDAPDN,
+//			authentication	AuthenticationChoice }
+//
+//	AuthenticationChoice ::= CHOICE {
+//			simple	[0] OCTET STRING,
+//					-- 1 and 2 reserved
+//			sasl    [3] SaslCredentials,
+//			...  }
 type BindRequest struct {
 	Version  uint8
 	Name     string
@@ -39,10 +40,10 @@ type BindRequest struct {
 	Credentials any
 }
 
-// BindResponse ::= [APPLICATION 1] SEQUENCE {
-// 		COMPONENTS OF LDAPResult,
-// 		serverSaslCreds    [7] OCTET STRING OPTIONAL }
-type BindResponse struct {
+//	BindResult ::= [APPLICATION 1] SEQUENCE {
+//			COMPONENTS OF LDAPResult,
+//			serverSaslCreds    [7] OCTET STRING OPTIONAL }
+type BindResult struct {
 	Result
 	ServerSASLCredentials string
 }
@@ -113,7 +114,7 @@ func GetBindRequest(data []byte) (*BindRequest, error) {
 }
 
 // Returns the BER-encoded struct (without element header)
-func (r *BindResponse) Encode() []byte {
+func (r *BindResult) Encode() []byte {
 	if r.ServerSASLCredentials == "" {
 		return r.Result.Encode()
 	}

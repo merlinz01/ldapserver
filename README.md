@@ -108,7 +108,7 @@ arguments on to the `BaseHandler`'s method, which handles
 StartTLS and unsupported requests.
 
 ```go
-func (h *MyHandler) Extended(conn *ldapserver.Conn, msg *ldapserver.Message, req *.dapserver.ExtendedRequest) {
+func (h *MyHandler) Extended(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.ExtendedRequest) {
 	switch req.Name {
 	case ldapserver.OIDPasswordModify:
 		log.Println("Modify password")
@@ -118,6 +118,24 @@ func (h *MyHandler) Extended(conn *ldapserver.Conn, msg *ldapserver.Message, req
 	}
 }
 ```
+
+## Returning results
+
+To return a result, create a `Result` struct with the desired `ResultCode`.
+For error results, you should also set the `DiagnosticMessage` field 
+so that the user knows what sort of error occurred.
+Pass the result along with the appropriate response type code
+to the connection's `SendResult` method.
+
+The Bind and Extended requests have their own response types,
+`BindResponse` and `ExtendedResponse`, that include a `Result` struct.
+These, as well as the `SearchResultEntry` and `SearchResultReference` structs,
+can also be passed to `Conn.SendResult()`.
+
+The library defines the result codes in RFC4511 with a `Result` prefix,
+e.g. `ResultNoSuchObject`. 
+These constants have an `AsResult()` method that returns a pointer to a `Result` struct with the given `DiagnosticMessage` field
+that can be passed directly to `Conn.SendResult()`.
 
 ## Operation cancellation
 
@@ -183,7 +201,7 @@ See `test/main.go` for an example.
 
 ## Feature support
 
-- [x] TLS
+- [x] TLS support
 - [x] Strict protocol validation
 - [x] OID validation
 - [x] DN parsing support
