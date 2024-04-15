@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/merlinz01/ldapserver"
@@ -19,6 +22,13 @@ func main() {
 		log.Println("Error setting up TLS:", err)
 		return
 	}
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-signals
+		log.Println("Shutting down.")
+		server.Shutdown()
+	}()
 	log.Println("Serving.")
 	err = server.ListenAndServe("localhost:389")
 	if err != nil {
