@@ -7,53 +7,53 @@ type LDAPResultCode uint32
 
 // Defined result codes
 const (
-	ResultSuccess                  LDAPResultCode = 0
-	LDAPResultOperationsError      LDAPResultCode = 1
-	LDAPResultProtocolError        LDAPResultCode = 2
-	LDAPResultTimeLimitExceeded    LDAPResultCode = 3
-	LDAPResultSizeLimitExceeded    LDAPResultCode = 4
-	LDAPResultCompareFalse         LDAPResultCode = 5
-	LDAPResultCompareTrue          LDAPResultCode = 6
-	ResultAuthMethodNotSupported   LDAPResultCode = 7
-	LDAPResultStrongerAuthRequired LDAPResultCode = 8
+	ResultSuccess                LDAPResultCode = 0
+	ResultOperationsError        LDAPResultCode = 1
+	ResultProtocolError          LDAPResultCode = 2
+	ResultTimeLimitExceeded      LDAPResultCode = 3
+	ResultSizeLimitExceeded      LDAPResultCode = 4
+	ResultCompareFalse           LDAPResultCode = 5
+	ResultCompareTrue            LDAPResultCode = 6
+	ResultAuthMethodNotSupported LDAPResultCode = 7
+	ResultStrongerAuthRequired   LDAPResultCode = 8
 	// 9 reserved
-	LDAPResultReferral                     LDAPResultCode = 10
-	LDAPResultAdminLimitExceeded           LDAPResultCode = 11
-	LDAPResultUnavailableCriticalExtension LDAPResultCode = 12
-	LDAPResultConfidentialityRequired      LDAPResultCode = 13
-	LDAPResultSaslBindInProgress           LDAPResultCode = 14
+	ResultReferral                     LDAPResultCode = 10
+	ResultAdminLimitExceeded           LDAPResultCode = 11
+	ResultUnavailableCriticalExtension LDAPResultCode = 12
+	ResultConfidentialityRequired      LDAPResultCode = 13
+	ResultSaslBindInProgress           LDAPResultCode = 14
 	// 15 ???
-	LDAPResultNoSuchAttribute        LDAPResultCode = 16
-	LDAPResultUndefinedAttributeType LDAPResultCode = 17
-	LDAPResultInappropriateMatching  LDAPResultCode = 18
-	LDAPResultConstraintViolation    LDAPResultCode = 19
-	LDAPResultAttributeOrValueExists LDAPResultCode = 20
-	LDAPResultInvalidAttributeSyntax LDAPResultCode = 21
+	ResultNoSuchAttribute        LDAPResultCode = 16
+	ResultUndefinedAttributeType LDAPResultCode = 17
+	ResultInappropriateMatching  LDAPResultCode = 18
+	ResultConstraintViolation    LDAPResultCode = 19
+	ResultAttributeOrValueExists LDAPResultCode = 20
+	ResultInvalidAttributeSyntax LDAPResultCode = 21
 	// 22-31 unused
-	LDAPResultNoSuchObject    LDAPResultCode = 32
-	LDAPResultAliasProblem    LDAPResultCode = 33
-	LDAPResultInvalidDNSyntax LDAPResultCode = 34
+	ResultNoSuchObject    LDAPResultCode = 32
+	ResultAliasProblem    LDAPResultCode = 33
+	ResultInvalidDNSyntax LDAPResultCode = 34
 	// 35 reserved
-	LDAPResultAliasDereferencingProblem LDAPResultCode = 36
+	ResultAliasDereferencingProblem LDAPResultCode = 36
 	// 37-47 unused
-	LDAPResultInappropriateAuthentication LDAPResultCode = 48
-	LDAPResultInvalidCredentials          LDAPResultCode = 49
-	LDAPResultInsufficientAccessRights    LDAPResultCode = 50
-	LDAPResultBusy                        LDAPResultCode = 51
-	LDAPResultUnavailable                 LDAPResultCode = 52
-	LDAPResultUnwillingToPerform          LDAPResultCode = 53
-	LDAPResultLoopDetect                  LDAPResultCode = 54
+	ResultInappropriateAuthentication LDAPResultCode = 48
+	ResultInvalidCredentials          LDAPResultCode = 49
+	ResultInsufficientAccessRights    LDAPResultCode = 50
+	ResultBusy                        LDAPResultCode = 51
+	ResultUnavailable                 LDAPResultCode = 52
+	ResultUnwillingToPerform          LDAPResultCode = 53
+	ResultLoopDetect                  LDAPResultCode = 54
 	// 55-63 unused
-	LDAPResultNamingViolation           LDAPResultCode = 64
-	LDAPResultObjectClassViolation      LDAPResultCode = 65
-	LDAPResultNotAllowedOnNonLeaf       LDAPResultCode = 66
-	LDAPResultNotAllowedOnRDN           LDAPResultCode = 67
-	LDAPResultEntryAlreadyExists        LDAPResultCode = 68
-	LDAPResultObjectClassModsProhibited LDAPResultCode = 69
+	ResultNamingViolation           LDAPResultCode = 64
+	ResultObjectClassViolation      LDAPResultCode = 65
+	ResultNotAllowedOnNonLeaf       LDAPResultCode = 66
+	ResultNotAllowedOnRDN           LDAPResultCode = 67
+	ResultEntryAlreadyExists        LDAPResultCode = 68
+	ResultObjectClassModsProhibited LDAPResultCode = 69
 	// 70 reserved
-	LDAPResultAffectsMultibleDSAs LDAPResultCode = 70
+	ResultAffectsMultibleDSAs LDAPResultCode = 70
 	// 72-79 unused
-	LDAPResultOther LDAPResultCode = 80
+	ResultOther LDAPResultCode = 80
 	// extensible, more codes possible
 )
 

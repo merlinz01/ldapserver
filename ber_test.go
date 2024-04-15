@@ -302,7 +302,7 @@ func TestParseNoSuchObjectResult(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to read LDAPResult:", err)
 	}
-	if r.ResultCode != ldapserver.LDAPResultNoSuchObject {
+	if r.ResultCode != ldapserver.ResultNoSuchObject {
 		t.Fatal("wrong result code")
 	}
 	if r.MatchedDN != "ou=People, dc=example, dc=com" {
@@ -366,7 +366,7 @@ func TestParseReferralResult(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to get LDAPResult:", err)
 	}
-	if r.ResultCode != ldapserver.LDAPResultReferral {
+	if r.ResultCode != ldapserver.ResultReferral {
 		t.Fatal("wrong result code")
 	}
 	if r.MatchedDN != "" {

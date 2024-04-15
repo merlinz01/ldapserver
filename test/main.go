@@ -59,7 +59,7 @@ func (t *TestHandler) Add(conn *ldapserver.Conn, msg *ldapserver.Message, req *l
 	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
 		log.Println("Not an authorized connection!", auth)
 		conn.SendResult(msg.MessageID, nil, ldapserver.TypeAddResponseOp,
-			ldapserver.LDAPResultInsufficientAccessRights.AsResult(
+			ldapserver.ResultInsufficientAccessRights.AsResult(
 				"the connection is not authorized to perform the requested operation"))
 		return
 	}
@@ -82,7 +82,7 @@ func (t *TestHandler) Bind(conn *ldapserver.Conn, msg *ldapserver.Message, req *
 		log.Println("Simple authentication:", req.Name, req.Credentials.(string))
 		if req.Credentials.(string) != "weakpassword" {
 			conn.Authentication = nil
-			res.ResultCode = ldapserver.LDAPResultInvalidCredentials
+			res.ResultCode = ldapserver.ResultInvalidCredentials
 		} else {
 			conn.Authentication = req.Name
 			res.ResultCode = ldapserver.ResultSuccess
@@ -122,7 +122,7 @@ func (t *TestHandler) Compare(conn *ldapserver.Conn, msg *ldapserver.Message, re
 	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
 		log.Println("Not an authorized connection!", auth)
 		conn.SendResult(msg.MessageID, nil, ldapserver.TypeCompareResponseOp,
-			ldapserver.LDAPResultInsufficientAccessRights.AsResult(
+			ldapserver.ResultInsufficientAccessRights.AsResult(
 				"the connection is not authorized to perform the requested operation"))
 		return
 	}
@@ -136,7 +136,7 @@ func (t *TestHandler) Compare(conn *ldapserver.Conn, msg *ldapserver.Message, re
 		return
 	}
 	res := &ldapserver.Result{
-		ResultCode: ldapserver.LDAPResultCompareTrue,
+		ResultCode: ldapserver.ResultCompareTrue,
 	}
 	conn.SendResult(msg.MessageID, nil, ldapserver.TypeCompareResponseOp, res)
 }
@@ -147,7 +147,7 @@ func (t *TestHandler) Delete(conn *ldapserver.Conn, msg *ldapserver.Message, dn 
 	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
 		log.Println("Not an authorized connection!", auth)
 		conn.SendResult(msg.MessageID, nil, ldapserver.TypeDeleteResponseOp,
-			ldapserver.LDAPResultInsufficientAccessRights.AsResult(
+			ldapserver.ResultInsufficientAccessRights.AsResult(
 				"the connection is not authorized to perform the requested operation"))
 		return
 	}
@@ -164,7 +164,7 @@ func (t *TestHandler) Modify(conn *ldapserver.Conn, msg *ldapserver.Message, req
 	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
 		log.Println("Not an authorized connection!", auth)
 		conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyResponseOp,
-			ldapserver.LDAPResultInsufficientAccessRights.AsResult(
+			ldapserver.ResultInsufficientAccessRights.AsResult(
 				"the connection is not authorized to perform the requested operation"))
 		return
 	}
@@ -186,7 +186,7 @@ func (t *TestHandler) ModifyDN(conn *ldapserver.Conn, msg *ldapserver.Message, r
 	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
 		log.Println("Not an authorized connection!", auth)
 		conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyResponseOp,
-			ldapserver.LDAPResultInsufficientAccessRights.AsResult(
+			ldapserver.ResultInsufficientAccessRights.AsResult(
 				"the connection is not authorized to perform the requested operation"))
 		return
 	}
@@ -214,14 +214,14 @@ func (t *TestHandler) Search(conn *ldapserver.Conn, msg *ldapserver.Message, req
 	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
 		log.Println("Not an authorized connection!", auth)
 		conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyResponseOp,
-			ldapserver.LDAPResultInsufficientAccessRights.AsResult(
+			ldapserver.ResultInsufficientAccessRights.AsResult(
 				"the connection is not authorized to perform the requested operation"))
 		return
 	}
 	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
 		log.Println("Not an authorized connection!", auth)
 		conn.SendResult(msg.MessageID, nil, ldapserver.TypeSearchResultDoneOp,
-			ldapserver.LDAPResultInsufficientAccessRights.AsResult(
+			ldapserver.ResultInsufficientAccessRights.AsResult(
 				"the connection is not authorized to perform the requested operation"))
 		return
 	}

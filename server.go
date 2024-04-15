@@ -157,7 +157,7 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 		if err != nil {
 			log.Println("Error parsing Add request:", err)
 			conn.SendResult(msg.MessageID, nil, TypeAddResponseOp,
-				LDAPResultProtocolError.AsResult("invalid Add request received"))
+				ResultProtocolError.AsResult("invalid Add request received"))
 			return
 		}
 		conn.asyncOperations.Add(1)
@@ -170,14 +170,14 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 		if err != nil {
 			log.Println("Error parsing Bind request:", err)
 			conn.SendResult(msg.MessageID, nil, TypeBindResponseOp,
-				LDAPResultProtocolError.AsResult("invalid Bind request received"))
+				ResultProtocolError.AsResult("invalid Bind request received"))
 			return
 		}
 		// Handle this so that implementations don't have to
 		if req.Version != 3 {
 			log.Println("Unsupported LDAP version in Bind request:", req.Version)
 			conn.SendResult(msg.MessageID, nil, TypeBindResponseOp,
-				LDAPResultProtocolError.AsResult("unsupported LDAP version specified in Bind request"))
+				ResultProtocolError.AsResult("unsupported LDAP version specified in Bind request"))
 			return
 		}
 		conn.asyncOperations.Wait()
@@ -187,7 +187,7 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 		if err != nil {
 			log.Println("Error parsing Compare request:", err)
 			conn.SendResult(msg.MessageID, nil, TypeCompareResponseOp,
-				LDAPResultProtocolError.AsResult("invalid Compare request received"))
+				ResultProtocolError.AsResult("invalid Compare request received"))
 			return
 		}
 		conn.asyncOperations.Add(1)
@@ -207,7 +207,7 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 		if err != nil {
 			log.Println("Error parsing Extended request:", err)
 			conn.SendResult(msg.MessageID, nil, TypeExtendedResponseOp,
-				&ExtendedResult{Result: *LDAPResultProtocolError.AsResult("invalid Extended request received")})
+				&ExtendedResult{Result: *ResultProtocolError.AsResult("invalid Extended request received")})
 			return
 		}
 		// This is not concurrent in case it is a StartTLS request
@@ -217,7 +217,7 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 		if err != nil {
 			log.Println("Error parsing Modify request:", err)
 			conn.SendResult(msg.MessageID, nil, TypeModifyResponseOp,
-				LDAPResultProtocolError.AsResult("invalid Modify request received"))
+				ResultProtocolError.AsResult("invalid Modify request received"))
 			return
 		}
 		conn.asyncOperations.Add(1)
@@ -230,7 +230,7 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 		if err != nil {
 			log.Println("Error parsing ModifyDN request:", err)
 			conn.SendResult(msg.MessageID, nil, TypeModifyDNResponseOp,
-				LDAPResultProtocolError.AsResult("invalid ModifyDN request received"))
+				ResultProtocolError.AsResult("invalid ModifyDN request received"))
 			return
 		}
 		conn.asyncOperations.Add(1)
@@ -243,7 +243,7 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 		if err != nil {
 			log.Println("Error parsing Search request:", err)
 			conn.SendResult(msg.MessageID, nil, TypeSearchResultDoneOp,
-				LDAPResultProtocolError.AsResult("invalid Search request received"))
+				ResultProtocolError.AsResult("invalid Search request received"))
 			return
 		}
 		conn.asyncOperations.Add(1)
