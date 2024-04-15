@@ -31,7 +31,7 @@ func NewLDAPServer(handler Handler) *LDAPServer {
 
 // Load the certificate and key to enable TLS connections.
 func (s *LDAPServer) SetupTLS(certFile string, keyFile string) error {
-	cert, err := tls.LoadX509KeyPair("cert.pem", "privkey.pem")
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		return err
 	}
