@@ -115,6 +115,17 @@ func (d DN) CommonSuperior(other DN) DN {
 	return d
 }
 
+// Returns the DN with the specified RDNAttribute added to the end.
+func (d DN) WithRDN(rdn RDN) DN {
+	new := make(DN, len(d), len(d)+1)
+	return append(new, rdn)
+}
+
+// Returns the DN with the specified RDN attribute string and value added to the end.
+func (d DN) WithRDNAttribute(atype string, value string) DN {
+	return d.WithRDN(RDN{RDNAttribute{atype, value}})
+}
+
 // Returns the RFC4514-compliant string representation of the RDN.
 func (r RDN) String() string {
 	s := ""

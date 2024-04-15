@@ -238,7 +238,7 @@ func (t *TestHandler) Search(conn *ldapserver.Conn, msg *ldapserver.Message, req
 	log.Println("Attributes:", req.Attributes)
 
 	// Return some entries
-	for i := range make([]any, 5) {
+	for i := 0; i < 5; i++ {
 		if t.abandonment[msg.MessageID] {
 			log.Println("Abandoning search request after", i, "requests")
 			return

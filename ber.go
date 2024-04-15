@@ -98,7 +98,7 @@ func BerReadSize(r io.Reader) (uint32, error) {
 	}
 	// Read the integer from the next nbytes bytes
 	var res uint32 = 0
-	for range make([]any, nbytes) {
+	for i := 0; i < int(nbytes); i++ {
 		b, err = readByte(r)
 		if err != nil {
 			return 0, err
