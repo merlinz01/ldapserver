@@ -208,6 +208,16 @@ func ParseDN(s string) (DN, error) {
 	return dn, nil
 }
 
+// Parses a RFC4514 string representation into a DN.
+// Panics if there is an error, useful for compile-time initialization.
+func MustParseDN(s string) DN {
+	dn, err := ParseDN(s)
+	if err != nil {
+		panic(err)
+	}
+	return dn
+}
+
 // Split a DN string into its RDNs, taking into account escaped commas and reversing the order.
 func splitRDNs(s string) []string {
 	if s == "" {
