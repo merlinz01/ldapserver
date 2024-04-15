@@ -7,10 +7,16 @@ import (
 	"unicode"
 )
 
+// DN represents a distinguished name.
+// It is a sequence of relative distinguished names (RDNs).
+// Note: The order of RDNs is reversed compared to the LDAP string representation.
 type DN []RDN
 
+// RDN represents a relative distinguished name.
+// It is a sequence of (commonly only one) RDNAttribute's.
 type RDN []RDNAttribute
 
+// RDNAttribute represents an attribute in a relative distinguished name.
 type RDNAttribute struct {
 	Type  string
 	Value string
@@ -18,11 +24,11 @@ type RDNAttribute struct {
 
 func (d DN) String() string {
 	s := ""
-	for i, rdn := range d {
-		if i > 0 {
+	for i := len(d) - 1; i >= 0; i-- {
+		if i < len(d)-1 {
 			s += ","
 		}
-		s += rdn.String()
+		s += d[i].String()
 	}
 	return s
 }
@@ -39,11 +45,14 @@ func (d DN) Equal(other DN) bool {
 	return true
 }
 
-func (d DN) IsParent(other DN) bool {
-	if len(d) != len(other)+1 {
+func (d DN) IsParent(child DN) bool {
+	if len(d)+1 != len(child) {
 		return false
 	}
-	for i, rdn := range other {
+	if len(d) == 0 {
+		return true
+	}
+	for i, rdn := range child[:len(d)] {
 		if !rdn.Equal(d[i]) {
 			return false
 		}
@@ -75,6 +84,9 @@ func (d DN) IsSibling(other DN) bool {
 	if len(d) != len(other) {
 		return false
 	}
+	if len(d) == 0 {
+		return true
+	}
 	for i, rdn := range d[:len(d)-1] {
 		if !rdn.Equal(other[i]) {
 			return false
@@ -87,13 +99,12 @@ func (d DN) CommonAncestor(other DN) DN {
 	if len(d) == 0 || len(other) == 0 {
 		return nil
 	}
-	i := 0
-	for ; i < len(d) && i < len(other); i++ {
-		if !d[i].Equal(other[i]) {
-			break
+	for i, rdn := range d {
+		if i == len(other) || !rdn.Equal(other[i]) {
+			return d[:i]
 		}
 	}
-	return d[:i]
+	return d
 }
 
 func (r RDN) String() string {
@@ -208,6 +219,10 @@ func splitRDNs(s string) []string {
 		}
 	}
 	a = append(a, s[start:])
+	// Reverse the order
+	for i, j := 0, len(a)-1; i < j; i, j = i+1, j-1 {
+		a[i], a[j] = a[j], a[i]
+	}
 	return a
 }
 
