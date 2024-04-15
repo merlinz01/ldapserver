@@ -152,7 +152,14 @@ func (r *IntermediateResponse) Encode() []byte {
 		w.Write(BerEncodeElement(BerContextSpecificType(1, false), BerEncodeOctetString(r.Value)))
 	}
 	return w.Bytes()
+}
 
+func (r LDAPResultCode) AsResult(diagnosticMessage string) *Result {
+	res := &Result{
+		ResultCode:        r,
+		DiagnosticMessage: diagnosticMessage,
+	}
+	return res
 }
 
 // Result returned for protocol errors
