@@ -41,31 +41,38 @@ func (*BaseHandler) Abandon(conn *Conn, msg *Message, messageID MessageID) {
 }
 
 func (*BaseHandler) Add(conn *Conn, msg *Message, req *AddRequest) {
-	conn.SendResult(msg.MessageID, nil, TypeAddResponseOp, UnsupportedOperation)
+	conn.SendResult(msg.MessageID, nil, TypeAddResponseOp,
+		LDAPResultUnwillingToPerform.AsResult("the Add operation not supported by this server"))
 }
 
 func (*BaseHandler) Bind(conn *Conn, msg *Message, req *BindRequest) {
-	conn.SendResult(msg.MessageID, nil, TypeBindResponseOp, UnsupportedOperation)
+	conn.SendResult(msg.MessageID, nil, TypeBindResponseOp,
+		LDAPResultUnwillingToPerform.AsResult("the Bind operation not supported by this server"))
 }
 
 func (*BaseHandler) Compare(conn *Conn, msg *Message, req *CompareRequest) {
-	conn.SendResult(msg.MessageID, nil, TypeCompareResponseOp, UnsupportedOperation)
+	conn.SendResult(msg.MessageID, nil, TypeCompareResponseOp,
+		LDAPResultUnwillingToPerform.AsResult("the Compare operation not supported by this server"))
 }
 
 func (*BaseHandler) Delete(conn *Conn, msg *Message, dn string) {
-	conn.SendResult(msg.MessageID, nil, TypeDeleteResponseOp, UnsupportedOperation)
+	conn.SendResult(msg.MessageID, nil, TypeDeleteResponseOp,
+		LDAPResultUnwillingToPerform.AsResult("the Delete operation not supported by this server"))
 }
 
 func (*BaseHandler) Modify(conn *Conn, msg *Message, req *ModifyRequest) {
-	conn.SendResult(msg.MessageID, nil, TypeModifyResponseOp, UnsupportedOperation)
+	conn.SendResult(msg.MessageID, nil, TypeModifyResponseOp,
+		LDAPResultUnwillingToPerform.AsResult("the Modify operation not supported by this server"))
 }
 
 func (*BaseHandler) ModifyDN(conn *Conn, msg *Message, req *ModifyDNRequest) {
-	conn.SendResult(msg.MessageID, nil, TypeModifyDNResponseOp, UnsupportedOperation)
+	conn.SendResult(msg.MessageID, nil, TypeModifyDNResponseOp,
+		LDAPResultUnwillingToPerform.AsResult("the ModifyDN operation not supported by this server"))
 }
 
 func (*BaseHandler) Search(conn *Conn, msg *Message, req *SearchRequest) {
-	conn.SendResult(msg.MessageID, nil, TypeSearchResultDoneOp, UnsupportedOperation)
+	conn.SendResult(msg.MessageID, nil, TypeSearchResultDoneOp,
+		LDAPResultUnwillingToPerform.AsResult("the Search operation not supported by this server"))
 }
 
 // Implementers should provide their own Extended method that defaults to calling this
@@ -113,5 +120,6 @@ func (*BaseHandler) StartTLS(conn *Conn, msg *Message) {
 }
 
 func (*BaseHandler) Other(conn *Conn, msg *Message) {
-	conn.SendResult(msg.MessageID, nil, BerTypeSequence, UnsupportedOperation)
+	conn.SendResult(msg.MessageID, nil, BerTypeSequence,
+		LDAPResultUnwillingToPerform.AsResult("the requested operation was not recognized"))
 }

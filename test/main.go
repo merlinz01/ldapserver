@@ -19,8 +19,12 @@ func main() {
 		log.Println("Error setting up TLS:", err)
 		return
 	}
-	println("Serving.")
-	server.ListenAndServe("localhost:389")
+	log.Println("Serving.")
+	err = server.ListenAndServe("localhost:389")
+	if err != nil {
+		log.Println("Error starting server:", err)
+		return
+	}
 }
 
 type TestHandler struct {
@@ -54,7 +58,9 @@ func (t *TestHandler) Add(conn *ldapserver.Conn, msg *ldapserver.Message, req *l
 	auth := getAuth(conn)
 	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
 		log.Println("Not an authorized connection!", auth)
-		conn.SendResult(msg.MessageID, nil, ldapserver.TypeAddResponseOp, ldapserver.PermissionDenied)
+		conn.SendResult(msg.MessageID, nil, ldapserver.TypeAddResponseOp,
+			ldapserver.LDAPResultInsufficientAccessRights.AsResult(
+				"the connection is not authorized to perform the requested operation"))
 		return
 	}
 	log.Println("Add DN:", req.Entry)
@@ -120,7 +126,9 @@ func (t *TestHandler) Compare(conn *ldapserver.Conn, msg *ldapserver.Message, re
 	auth := getAuth(conn)
 	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
 		log.Println("Not an authorized connection!", auth)
-		conn.SendResult(msg.MessageID, nil, ldapserver.TypeCompareResponseOp, ldapserver.PermissionDenied)
+		conn.SendResult(msg.MessageID, nil, ldapserver.TypeCompareResponseOp,
+			ldapserver.LDAPResultInsufficientAccessRights.AsResult(
+				"the connection is not authorized to perform the requested operation"))
 		return
 	}
 	// Pretend to take a while
@@ -143,7 +151,9 @@ func (t *TestHandler) Delete(conn *ldapserver.Conn, msg *ldapserver.Message, dn 
 	auth := getAuth(conn)
 	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
 		log.Println("Not an authorized connection!", auth)
-		conn.SendResult(msg.MessageID, nil, ldapserver.TypeDeleteResponseOp, ldapserver.PermissionDenied)
+		conn.SendResult(msg.MessageID, nil, ldapserver.TypeDeleteResponseOp,
+			ldapserver.LDAPResultInsufficientAccessRights.AsResult(
+				"the connection is not authorized to perform the requested operation"))
 		return
 	}
 	log.Println("Delete DN:", dn)
@@ -158,7 +168,9 @@ func (t *TestHandler) Modify(conn *ldapserver.Conn, msg *ldapserver.Message, req
 	auth := getAuth(conn)
 	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
 		log.Println("Not an authorized connection!", auth)
-		conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyResponseOp, ldapserver.PermissionDenied)
+		conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyResponseOp,
+			ldapserver.LDAPResultInsufficientAccessRights.AsResult(
+				"the connection is not authorized to perform the requested operation"))
 		return
 	}
 	log.Println("Modify DN:", req.Object)
@@ -178,7 +190,9 @@ func (t *TestHandler) ModifyDN(conn *ldapserver.Conn, msg *ldapserver.Message, r
 	auth := getAuth(conn)
 	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
 		log.Println("Not an authorized connection!", auth)
-		conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyResponseOp, ldapserver.PermissionDenied)
+		conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyResponseOp,
+			ldapserver.LDAPResultInsufficientAccessRights.AsResult(
+				"the connection is not authorized to perform the requested operation"))
 		return
 	}
 	log.Println("Old DN:", req.Object)
@@ -204,12 +218,16 @@ func (t *TestHandler) Search(conn *ldapserver.Conn, msg *ldapserver.Message, req
 	auth := getAuth(conn)
 	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
 		log.Println("Not an authorized connection!", auth)
-		conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyResponseOp, ldapserver.PermissionDenied)
+		conn.SendResult(msg.MessageID, nil, ldapserver.TypeModifyResponseOp,
+			ldapserver.LDAPResultInsufficientAccessRights.AsResult(
+				"the connection is not authorized to perform the requested operation"))
 		return
 	}
 	if auth != "uid=authorizeduser,ou=users,dc=example,dc=com" {
 		log.Println("Not an authorized connection!", auth)
-		conn.SendResult(msg.MessageID, nil, ldapserver.TypeSearchResultDoneOp, ldapserver.PermissionDenied)
+		conn.SendResult(msg.MessageID, nil, ldapserver.TypeSearchResultDoneOp,
+			ldapserver.LDAPResultInsufficientAccessRights.AsResult(
+				"the connection is not authorized to perform the requested operation"))
 		return
 	}
 	log.Println("Base object:", req.BaseObject)

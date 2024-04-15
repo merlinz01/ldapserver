@@ -161,21 +161,3 @@ func (r LDAPResultCode) AsResult(diagnosticMessage string) *Result {
 	}
 	return res
 }
-
-// Result returned for protocol errors
-var ProtocolError = &Result{
-	ResultCode:        LDAPResultProtocolError,
-	DiagnosticMessage: "the server could not understand the request",
-}
-
-// Result returned for unsupported requests
-var UnsupportedOperation = &Result{
-	ResultCode:        LDAPResultUnwillingToPerform,
-	DiagnosticMessage: "the operation requested is not supported by the server",
-}
-
-// Result returned for denied permission
-var PermissionDenied = &Result{
-	ResultCode:        LDAPResultInsufficientAccessRights,
-	DiagnosticMessage: "client has insufficient access rights to the requested resource",
-}
