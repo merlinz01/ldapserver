@@ -243,7 +243,7 @@ func TestDNCommonAncestor(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error parsing common ancestor: %s", err)
 		}
-		dnca := dn1.CommonAncestor(dn2)
+		dnca := dn1.CommonSuperior(dn2)
 		if !dnca.Equal(ca) {
 			t.Errorf("Expected \"%s\", got \"%s\" for common ancestor of \"%s\" and \"%s\"", ca, dnca, test.dn1, test.dn2)
 		}

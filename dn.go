@@ -22,6 +22,7 @@ type RDNAttribute struct {
 	Value string
 }
 
+// Returns the RFC4514-compliant string representation of the DN.
 func (d DN) String() string {
 	s := ""
 	for i := len(d) - 1; i >= 0; i-- {
@@ -33,6 +34,7 @@ func (d DN) String() string {
 	return s
 }
 
+// Returns true if the DN is equal to the other DN.
 func (d DN) Equal(other DN) bool {
 	if len(d) != len(other) {
 		return false
@@ -45,6 +47,7 @@ func (d DN) Equal(other DN) bool {
 	return true
 }
 
+// Returns true if the DN is an immediate superior of the other DN.
 func (d DN) IsParent(child DN) bool {
 	if len(d)+1 != len(child) {
 		return false
@@ -60,10 +63,12 @@ func (d DN) IsParent(child DN) bool {
 	return true
 }
 
+// Returns true if the DN is an immediate subordinate of the other DN.
 func (d DN) IsChild(other DN) bool {
 	return other.IsParent(d)
 }
 
+// Returns true if the DN is a superior of the other DN.
 func (d DN) IsSuperior(other DN) bool {
 	if len(d) >= len(other) {
 		return false
@@ -76,10 +81,12 @@ func (d DN) IsSuperior(other DN) bool {
 	return true
 }
 
+// Returns true if the DN is a subordinate of the other DN.
 func (d DN) IsSubordinate(other DN) bool {
 	return other.IsSuperior(d)
 }
 
+// Returns true if the DN and other have the same parent.
 func (d DN) IsSibling(other DN) bool {
 	if len(d) != len(other) {
 		return false
@@ -95,7 +102,8 @@ func (d DN) IsSibling(other DN) bool {
 	return true
 }
 
-func (d DN) CommonAncestor(other DN) DN {
+// Returns the lowest common superior of the DN and other.
+func (d DN) CommonSuperior(other DN) DN {
 	if len(d) == 0 || len(other) == 0 {
 		return nil
 	}
@@ -107,6 +115,7 @@ func (d DN) CommonAncestor(other DN) DN {
 	return d
 }
 
+// Returns the RFC4514-compliant string representation of the RDN.
 func (r RDN) String() string {
 	s := ""
 	for i, attr := range r {
@@ -118,6 +127,7 @@ func (r RDN) String() string {
 	return s
 }
 
+// Returns true if the RDN is equal to the other RDN.
 func (r RDN) Equal(other RDN) bool {
 	if len(r) != len(other) {
 		return false
@@ -130,6 +140,7 @@ func (r RDN) Equal(other RDN) bool {
 	return true
 }
 
+// Returns the RFC4514-compliant string representation of the RDNAttribute.
 func (a RDNAttribute) String() string {
 	if OID(a.Type).Validate() == nil {
 		buf := make([]byte, 1, len(a.Value)*2+1)
@@ -179,6 +190,7 @@ func (a RDNAttribute) String() string {
 	}
 }
 
+// Parses a RFC4514 string representation into a DN.
 func ParseDN(s string) (DN, error) {
 	var dn DN
 	for _, rdn := range splitRDNs(s) {
@@ -196,6 +208,7 @@ func ParseDN(s string) (DN, error) {
 	return dn, nil
 }
 
+// Split a DN string into its RDNs, taking into account escaped commas and reversing the order.
 func splitRDNs(s string) []string {
 	if s == "" {
 		return nil
@@ -226,6 +239,7 @@ func splitRDNs(s string) []string {
 	return a
 }
 
+// Split an RDN string into its attributes, taking into account escaped plus signs.
 func splitAttrs(s string) []string {
 	if s == "" {
 		return nil
@@ -252,10 +266,12 @@ func splitAttrs(s string) []string {
 	return a
 }
 
+// Split an attribute string into its type and value.
 func splitAttr(s string) []string {
 	return strings.SplitN(s, "=", 2)
 }
 
+// Decode an RFC4514 RDN attribute value string.
 func DecodeRDNAttributeValue(s string) (string, error) {
 	if len(s) == 0 {
 		return s, nil
