@@ -39,6 +39,63 @@ func (d DN) Equal(other DN) bool {
 	return true
 }
 
+func (d DN) IsParent(other DN) bool {
+	if len(d) != len(other)+1 {
+		return false
+	}
+	for i, rdn := range other {
+		if !rdn.Equal(d[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func (d DN) IsChild(other DN) bool {
+	return other.IsParent(d)
+}
+
+func (d DN) IsSuperior(other DN) bool {
+	if len(d) >= len(other) {
+		return false
+	}
+	for i, rdn := range d {
+		if !rdn.Equal(other[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func (d DN) IsSubordinate(other DN) bool {
+	return other.IsSuperior(d)
+}
+
+func (d DN) IsSibling(other DN) bool {
+	if len(d) != len(other) {
+		return false
+	}
+	for i, rdn := range d[:len(d)-1] {
+		if !rdn.Equal(other[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func (d DN) CommonAncestor(other DN) DN {
+	if len(d) == 0 || len(other) == 0 {
+		return nil
+	}
+	i := 0
+	for ; i < len(d) && i < len(other); i++ {
+		if !d[i].Equal(other[i]) {
+			break
+		}
+	}
+	return d[:i]
+}
+
 func (r RDN) String() string {
 	s := ""
 	for i, attr := range r {
