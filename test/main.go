@@ -77,11 +77,6 @@ func (t *TestHandler) Add(conn *ldapserver.Conn, msg *ldapserver.Message, req *l
 func (t *TestHandler) Bind(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.BindRequest) {
 	log.Println("Bind request")
 	res := &ldapserver.BindResponse{}
-	if req.Version != 3 {
-		res.ResultCode = ldapserver.LDAPResultProtocolError
-		res.DiagnosticMessage = "the protocol version received is not supported"
-		conn.SendResult(msg.MessageID, nil, ldapserver.TypeBindResponseOp, res)
-	}
 	switch req.AuthType {
 	case ldapserver.AuthenticationTypeSimple:
 		log.Println("Simple authentication:", req.Name, req.Credentials.(string))

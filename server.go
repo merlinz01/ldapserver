@@ -173,6 +173,13 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 				LDAPResultProtocolError.AsResult("invalid Bind request received"))
 			return
 		}
+		// Handle this so that implementations don't have to
+		if req.Version != 3 {
+			log.Println("Unsupported LDAP version in Bind request:", req.Version)
+			conn.SendResult(msg.MessageID, nil, TypeBindResponseOp,
+				LDAPResultProtocolError.AsResult("unsupported LDAP version specified in Bind request"))
+			return
+		}
 		conn.asyncOperations.Wait()
 		s.Handler.Bind(conn, msg, req)
 	case TypeCompareRequestOp:
