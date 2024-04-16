@@ -130,6 +130,8 @@ func (s *LDAPServer) handleConnection(c net.Conn) {
 				return
 			} else {
 				log.Println("Error reading LDAPMessage, closing connection:", err)
+				// Might fail if it is a transport problem, but we're closing anyway
+				ldapConn.NotifyDisconnect(ResultProtocolError, "error reading LDAP message")
 				ldapConn.Close()
 				return
 			}
@@ -147,8 +149,14 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 	switch msg.ProtocolOp.Type {
 	case TypeAbandonRequestOp:
 		messageID, err := BerGetInteger(msg.ProtocolOp.Data)
-		if err != nil || messageID < 0 || messageID > 2147483647 {
-			log.Println("Invalid Abandon request:", err, messageID)
+		if err != nil {
+			log.Println("Error parsing Abandon request:", err)
+			conn.NotifyDisconnect(ResultProtocolError, "invalid Abandon request received")
+			conn.Close()
+			return
+		}
+		if messageID < 0 || messageID > 2147483647 {
+			log.Println("Invalid Abandon message ID:", messageID)
 			return
 		}
 		s.Handler.Abandon(conn, msg, MessageID(messageID))
@@ -156,8 +164,8 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 		req, err := GetAddRequest(msg.ProtocolOp.Data)
 		if err != nil {
 			log.Println("Error parsing Add request:", err)
-			conn.SendResult(msg.MessageID, nil, TypeAddResponseOp,
-				ResultProtocolError.AsResult("invalid Add request received"))
+			conn.NotifyDisconnect(ResultProtocolError, "invalid Add request received")
+			conn.Close()
 			return
 		}
 		conn.asyncOperations.Add(1)
@@ -169,8 +177,8 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 		req, err := GetBindRequest(msg.ProtocolOp.Data)
 		if err != nil {
 			log.Println("Error parsing Bind request:", err)
-			conn.SendResult(msg.MessageID, nil, TypeBindResponseOp,
-				ResultProtocolError.AsResult("invalid Bind request received"))
+			conn.NotifyDisconnect(ResultProtocolError, "invalid Bind request received")
+			conn.Close()
 			return
 		}
 		// Handle this so that implementations don't have to
@@ -186,8 +194,8 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 		req, err := GetCompareRequest(msg.ProtocolOp.Data)
 		if err != nil {
 			log.Println("Error parsing Compare request:", err)
-			conn.SendResult(msg.MessageID, nil, TypeCompareResponseOp,
-				ResultProtocolError.AsResult("invalid Compare request received"))
+			conn.NotifyDisconnect(ResultProtocolError, "invalid Compare request received")
+			conn.Close()
 			return
 		}
 		conn.asyncOperations.Add(1)
@@ -206,8 +214,8 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 		req, err := GetExtendedRequest(msg.ProtocolOp.Data)
 		if err != nil {
 			log.Println("Error parsing Extended request:", err)
-			conn.SendResult(msg.MessageID, nil, TypeExtendedResponseOp,
-				&ExtendedResult{Result: *ResultProtocolError.AsResult("invalid Extended request received")})
+			conn.NotifyDisconnect(ResultProtocolError, "invalid Extended request received")
+			conn.Close()
 			return
 		}
 		// This is not concurrent in case it is a StartTLS request
@@ -216,8 +224,8 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 		req, err := GetModifyRequest(msg.ProtocolOp.Data)
 		if err != nil {
 			log.Println("Error parsing Modify request:", err)
-			conn.SendResult(msg.MessageID, nil, TypeModifyResponseOp,
-				ResultProtocolError.AsResult("invalid Modify request received"))
+			conn.NotifyDisconnect(ResultProtocolError, "invalid Modify request received")
+			conn.Close()
 			return
 		}
 		conn.asyncOperations.Add(1)
@@ -229,8 +237,8 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 		req, err := GetModifyDNRequest(msg.ProtocolOp.Data)
 		if err != nil {
 			log.Println("Error parsing ModifyDN request:", err)
-			conn.SendResult(msg.MessageID, nil, TypeModifyDNResponseOp,
-				ResultProtocolError.AsResult("invalid ModifyDN request received"))
+			conn.NotifyDisconnect(ResultProtocolError, "invalid ModifyDN request received")
+			conn.Close()
 			return
 		}
 		conn.asyncOperations.Add(1)
@@ -242,8 +250,8 @@ func (s *LDAPServer) handleMessage(conn *Conn, msg *Message) {
 		req, err := GetSearchRequest(msg.ProtocolOp.Data)
 		if err != nil {
 			log.Println("Error parsing Search request:", err)
-			conn.SendResult(msg.MessageID, nil, TypeSearchResultDoneOp,
-				ResultProtocolError.AsResult("invalid Search request received"))
+			conn.NotifyDisconnect(ResultProtocolError, "invalid Search request received")
+			conn.Close()
 			return
 		}
 		conn.asyncOperations.Add(1)

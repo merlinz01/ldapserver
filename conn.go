@@ -41,8 +41,8 @@ func (c *Conn) Close() {
 }
 
 // Sends a notice of disconnection to the client
-func (c *Conn) NotifyDisconnect(resultCode LDAPResultCode) error {
-	return c.SendUnsolicitedNotification(resultCode, OIDNoticeOfDisconnection, "")
+func (c *Conn) NotifyDisconnect(resultCode LDAPResultCode, diagnosticMessage string) error {
+	return c.SendUnsolicitedNotification(resultCode, diagnosticMessage, OIDNoticeOfDisconnection, "")
 }
 
 // Reads a LDAPMessage from the connection
@@ -51,10 +51,11 @@ func (c *Conn) ReadMessage() (*Message, error) {
 }
 
 // Sends an Extended Result with a message ID of 0
-func (c *Conn) SendUnsolicitedNotification(resultCode LDAPResultCode, oid OID, respValue string) error {
+func (c *Conn) SendUnsolicitedNotification(resultCode LDAPResultCode, diagnosticMessage string, oid OID, respValue string) error {
 	res := ExtendedResult{
 		Result: Result{
-			ResultCode: resultCode,
+			ResultCode:        resultCode,
+			DiagnosticMessage: diagnosticMessage,
 		},
 		ResponseName:  oid,
 		ResponseValue: respValue,

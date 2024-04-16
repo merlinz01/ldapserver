@@ -120,6 +120,6 @@ func (*BaseHandler) StartTLS(conn *Conn, msg *Message) {
 }
 
 func (*BaseHandler) Other(conn *Conn, msg *Message) {
-	conn.SendResult(msg.MessageID, nil, BerTypeSequence,
-		ResultUnwillingToPerform.AsResult("the requested operation was not recognized"))
+	conn.NotifyDisconnect(ResultProtocolError, "operation type not recognized")
+	conn.Close()
 }
