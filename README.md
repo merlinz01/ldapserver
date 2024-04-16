@@ -147,8 +147,8 @@ Add a map and an accompanying mutex to your handler's struct.
 
 ```go
 type MyHandler struct {
-    ldapserver.BaseHandler
-    abandonment      map[ldapserver.MessageID]bool
+    ...
+    abandonment      map[ldapserver.MessageID]bool // Don't forget to initialize the map!
     abandonmentMutex sync.Mutex
 }
 ```

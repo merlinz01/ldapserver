@@ -1,7 +1,6 @@
 package ldapserver
 
 import (
-	"errors"
 	"log"
 )
 
@@ -80,7 +79,30 @@ func (*BaseHandler) Search(conn *Conn, msg *Message, req *SearchRequest) {
 func (h *BaseHandler) Extended(conn *Conn, msg *Message, req *ExtendedRequest) {
 	switch req.Name {
 	case OIDStartTLS:
-		h.StartTLS(conn, msg)
+		res := ExtendedResult{}
+		res.ResponseName = OIDStartTLS
+		if conn.TLSConfig == nil {
+			log.Println("StartTLS requested but TLS is not available")
+			res.Result.ResultCode = ResultProtocolError
+			res.DiagnosticMessage = "TLS is not available on this connection"
+			conn.SendResult(msg.MessageID, nil, TypeExtendedResponseOp, &res)
+			return
+		} else if conn.IsTLS() {
+			log.Println("StartTLS requested but TLS is already set up")
+			res.Result.ResultCode = ResultOperationsError
+			res.DiagnosticMessage = "TLS is already set up on this connection"
+			conn.SendResult(msg.MessageID, nil, TypeExtendedResponseOp, &res)
+			return
+		} else {
+			res.Result.ResultCode = ResultSuccess
+			res.DiagnosticMessage = "TLS is supported, go ahead"
+			conn.SendResult(msg.MessageID, nil, TypeExtendedResponseOp, &res)
+			err := conn.StartTLS()
+			if err != nil {
+				log.Println("Error starting TLS:", err)
+				conn.Close()
+			}
+		}
 	default:
 		log.Println("Unknown extended request:", req.Name)
 		res := &ExtendedResult{
@@ -91,32 +113,6 @@ func (h *BaseHandler) Extended(conn *Conn, msg *Message, req *ExtendedRequest) {
 		}
 		conn.SendResult(msg.MessageID, nil, TypeExtendedResponseOp, res)
 	}
-}
-
-// Handles a StartTLS extended request
-func (*BaseHandler) StartTLS(conn *Conn, msg *Message) {
-	res := ExtendedResult{
-		Result:       Result{ResultCode: ResultSuccess},
-		ResponseName: OIDStartTLS,
-	}
-	err := conn.StartTLS()
-	switch {
-	case err == nil:
-		// pass
-	case errors.Is(err, ErrTLSNotAvailable):
-		log.Println("TLS not available for StartTLS")
-		res.ResultCode = ResultUnwillingToPerform
-		res.DiagnosticMessage = "TLS is not available for StartTLS"
-	case errors.Is(err, ErrTLSAlreadySetUp):
-		log.Println("TLS is already set up on this connection")
-		res.ResultCode = ResultOperationsError
-		res.DiagnosticMessage = "TLS is already set up on this connection"
-	default:
-		log.Println("StartTLS failed, closing connection:", err)
-		conn.Close()
-		return
-	}
-	conn.SendResult(msg.MessageID, nil, TypeExtendedResponseOp, &res)
 }
 
 func (*BaseHandler) Other(conn *Conn, msg *Message) {

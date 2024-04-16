@@ -113,8 +113,8 @@ func (s *LDAPServer) handleConnection(c net.Conn) {
 	log.Println("Handle connection")
 	defer c.Close()
 	ldapConn := Conn{
-		Conn:         c,
-		tlsConfig:    s.TLSConfig,
+		conn:         c,
+		TLSConfig:    s.TLSConfig,
 		MessageCache: make(map[MessageID]any),
 	}
 	for {
@@ -122,7 +122,9 @@ func (s *LDAPServer) handleConnection(c net.Conn) {
 			// Close() called
 			return
 		}
+		ldapConn.tlsStarting.Lock()
 		msg, err := ldapConn.ReadMessage()
+		ldapConn.tlsStarting.Unlock()
 		if err != nil {
 			if errors.Is(err, syscall.Errno(0x2746)) { // Windows: An existing connection was forcibly closed by the client
 				log.Println("Connection was reset by the client.")

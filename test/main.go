@@ -100,6 +100,13 @@ func (t *TestHandler) checkPassword(dn ldapserver.DN, password string) bool {
 func (t *TestHandler) Bind(conn *ldapserver.Conn, msg *ldapserver.Message, req *ldapserver.BindRequest) {
 	log.Println("Bind request")
 	res := &ldapserver.BindResult{}
+	if !conn.IsTLS() {
+		log.Println("Rejecting Bind on non-TLS connection")
+		res.ResultCode = ldapserver.ResultConfidentialityRequired
+		res.DiagnosticMessage = "TLS is required for the Bind operation"
+		conn.SendResult(msg.MessageID, nil, ldapserver.TypeBindResponseOp, res)
+		return
+	}
 	dn, err := ldapserver.ParseDN(req.Name)
 	if err != nil {
 		log.Println("Error parsing DN:", err)

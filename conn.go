@@ -14,13 +14,13 @@ type Encodable interface {
 
 type Conn struct {
 	// Underlying network connection
-	Conn net.Conn
+	conn net.Conn
 	// Flag to signal server to stop reading messages
 	closed bool
 	// Whether the underlying connection has TLS set up
 	isTLS bool
 	// TLS config for StartTLS connections
-	tlsConfig *tls.Config
+	TLSConfig *tls.Config
 	// Mutex to prevent reading/writing while setting up TLS
 	tlsStarting sync.Mutex
 	// Mutex to synchronize message sending
@@ -36,17 +36,22 @@ type Conn struct {
 
 // Returns the local address of the connection
 func (c *Conn) LocalAddr() net.Addr {
-	return c.Conn.LocalAddr()
+	return c.conn.LocalAddr()
 }
 
 // Returns the remote address of the connection
 func (c *Conn) RemoteAddr() net.Addr {
-	return c.Conn.RemoteAddr()
+	return c.conn.RemoteAddr()
+}
+
+// Returns whether the underlying connection has TLS set up
+func (c *Conn) IsTLS() bool {
+	return c.isTLS
 }
 
 // Closes the underlying connection and stops reading messages.
 func (c *Conn) Close() {
-	c.Conn.Close()
+	c.conn.Close()
 	c.closed = true
 }
 
@@ -57,7 +62,7 @@ func (c *Conn) NotifyDisconnect(resultCode LDAPResultCode, diagnosticMessage str
 
 // Reads a LDAPMessage from the connection
 func (c *Conn) ReadMessage() (*Message, error) {
-	return ReadLDAPMessage(c.Conn)
+	return ReadLDAPMessage(c.conn)
 }
 
 // Sends an Extended Result with a message ID of 0
@@ -79,7 +84,7 @@ func (c *Conn) SendMessage(msg *Message) error {
 	defer c.tlsStarting.Unlock()
 	c.sending.Lock()
 	defer c.sending.Unlock()
-	_, err := io.Copy(c.Conn, bytes.NewReader(msg.EncodeWithHeader()))
+	_, err := io.Copy(c.conn, bytes.NewReader(msg.EncodeWithHeader()))
 	return err
 }
 
@@ -90,15 +95,15 @@ func (c *Conn) StartTLS() error {
 	if c.isTLS {
 		return ErrTLSAlreadySetUp
 	}
-	if c.tlsConfig == nil {
+	if c.TLSConfig == nil {
 		return ErrTLSNotAvailable
 	}
-	tlsConn := tls.Server(c.Conn, c.tlsConfig)
+	tlsConn := tls.Server(c.conn, c.TLSConfig)
 	err := tlsConn.Handshake()
 	if err != nil {
 		return err
 	}
-	c.Conn = tlsConn
+	c.conn = tlsConn
 	c.isTLS = true
 	return nil
 }
