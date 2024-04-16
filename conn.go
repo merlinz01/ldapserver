@@ -34,6 +34,16 @@ type Conn struct {
 	MessageCache map[MessageID]any
 }
 
+// Returns the local address of the connection
+func (c *Conn) LocalAddr() net.Addr {
+	return c.Conn.LocalAddr()
+}
+
+// Returns the remote address of the connection
+func (c *Conn) RemoteAddr() net.Addr {
+	return c.Conn.RemoteAddr()
+}
+
 // Closes the underlying connection and stops reading messages.
 func (c *Conn) Close() {
 	c.Conn.Close()

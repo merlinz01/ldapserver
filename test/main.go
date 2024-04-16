@@ -111,34 +111,34 @@ func (t *TestHandler) Bind(conn *ldapserver.Conn, msg *ldapserver.Message, req *
 	start := time.Now()
 	switch req.AuthType {
 	case ldapserver.AuthenticationTypeSimple:
-		log.Printf("Simple authentication from %s for \"%s\"\n", conn.Conn.RemoteAddr(), req.Name)
+		log.Printf("Simple authentication from %s for \"%s\"\n", conn.RemoteAddr(), req.Name)
 		if t.checkPassword(dn, req.Credentials.(string)) {
-			log.Printf("Successful Bind from %s for \"%s\"\n", conn.Conn.RemoteAddr(), dn)
+			log.Printf("Successful Bind from %s for \"%s\"\n", conn.RemoteAddr(), dn)
 			conn.Authentication = dn
 			res.ResultCode = ldapserver.ResultSuccess
 		} else {
-			log.Printf("Invalid credentials from %s for \"%s\"\n", conn.Conn.RemoteAddr(), dn)
+			log.Printf("Invalid credentials from %s for \"%s\"\n", conn.RemoteAddr(), dn)
 			conn.Authentication = nil
 			res.ResultCode = ldapserver.ResultInvalidCredentials
 		}
 	case ldapserver.AuthenticationTypeSASL:
 		creds := req.Credentials.(*ldapserver.SASLCredentials)
-		log.Printf("SASL authentication from %s for \"%s\" using mechanism %s", conn.Conn.RemoteAddr(), dn, creds.Mechanism)
+		log.Printf("SASL authentication from %s for \"%s\" using mechanism %s", conn.RemoteAddr(), dn, creds.Mechanism)
 		switch creds.Mechanism {
 		case "CRAM-MD5":
 			// Put verification code in here
-			log.Printf("CRAM-MD5 authentication from %s for \"%s\"\n", conn.Conn.RemoteAddr(), dn)
+			log.Printf("CRAM-MD5 authentication from %s for \"%s\"\n", conn.RemoteAddr(), dn)
 			conn.Authentication = nil
 			res.ResultCode = ldapserver.ResultAuthMethodNotSupported
 			res.DiagnosticMessage = "the CRAM-MD5 authentication method is not supported"
 		default:
-			log.Printf("Unsupported SASL mechanism from %s for \"%s\"\n", conn.Conn.RemoteAddr(), dn)
+			log.Printf("Unsupported SASL mechanism from %s for \"%s\"\n", conn.RemoteAddr(), dn)
 			conn.Authentication = nil
 			res.ResultCode = ldapserver.ResultAuthMethodNotSupported
 			res.DiagnosticMessage = "the SASL authentication method requested is not supported"
 		}
 	default:
-		log.Printf("Unsupported authentication method from %s for \"%s\"\n", conn.Conn.RemoteAddr(), dn)
+		log.Printf("Unsupported authentication method from %s for \"%s\"\n", conn.RemoteAddr(), dn)
 		res.ResultCode = ldapserver.ResultAuthMethodNotSupported
 		res.DiagnosticMessage = "the authentication method requested is not supported by this server"
 	}
