@@ -117,8 +117,13 @@ func (s *LDAPServer) handleConnection(c net.Conn) {
 		TLSConfig:    s.TLSConfig,
 		MessageCache: make(map[MessageID]any),
 	}
-	if _, isTLS := c.(*tls.Conn); isTLS {
+	if tlsConn, isTLS := c.(*tls.Conn); isTLS {
 		ldapConn.isTLS = true
+		err := tlsConn.Handshake()
+		if err != nil {
+			log.Println("TLS handshake error:", err)
+			return
+		}
 	}
 	for {
 		if ldapConn.closed {
