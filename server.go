@@ -117,6 +117,9 @@ func (s *LDAPServer) handleConnection(c net.Conn) {
 		TLSConfig:    s.TLSConfig,
 		MessageCache: make(map[MessageID]any),
 	}
+	if _, isTLS := c.(*tls.Conn); isTLS {
+		ldapConn.isTLS = true
+	}
 	for {
 		if ldapConn.closed {
 			// Close() called
