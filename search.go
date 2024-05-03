@@ -170,7 +170,7 @@ func (s *SearchResultEntry) Encode() []byte {
 	b.Write(BerEncodeOctetString(s.ObjectName))
 	ab := bytes.NewBuffer(nil)
 	for _, attr := range s.Attributes {
-		ab.Write(attr.Encode())
+		ab.Write(BerEncodeSequence(attr.Encode()))
 	}
 	b.Write(BerEncodeSequence(ab.Bytes()))
 	return b.Bytes()
