@@ -207,6 +207,7 @@ See `test/main.go` for an example.
 - [x] DN parsing support
 - [x] Full concurrency ability
 - [x] Comprehensive message parsing tests
+- [x] Filter stringification
 - [x] Abandon request
 - [x] Add request (concurrent)
 - [x] Bind request
