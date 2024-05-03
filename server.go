@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net"
+	"strings"
 	"syscall"
 )
 
@@ -133,8 +134,9 @@ func (s *LDAPServer) handleConnection(c net.Conn) {
 		msg, err := ldapConn.ReadMessage()
 		ldapConn.tlsStarting.RUnlock()
 		if err != nil {
-			if errors.Is(err, syscall.Errno(0x2746)) { // Windows: An existing connection was forcibly closed by the client
-				log.Println("Connection was reset by the client.")
+			if errors.Is(err, syscall.Errno(0x2746)) || // Windows: An existing connection was forcibly closed by the client
+				strings.HasSuffix(err.Error(), "connection reset by peer") {
+				log.Println("Connection was reset.")
 				ldapConn.Close()
 				return
 			} else {
