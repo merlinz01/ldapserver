@@ -230,11 +230,11 @@ func BerEncodeElement(etype BerType, data []byte) []byte {
 	if size < 0x80 {
 		res = append(res, byte(size))
 	} else if size <= 0xffff {
-		res = append(res, 0x81, byte((size&0xff00)>>8), byte(size&0xff))
+		res = append(res, 0x82, byte((size&0xff00)>>8), byte(size&0xff))
 	} else if size <= 0xffffff {
-		res = append(res, 0x82, byte((size&0xff0000)>>16), byte((size&0xff00)>>8), byte(size&0xff))
+		res = append(res, 0x83, byte((size&0xff0000)>>16), byte((size&0xff00)>>8), byte(size&0xff))
 	} else if size <= 0xffffffff {
-		res = append(res, 0x83, byte((size&0xff000000)>>24), byte((size&0xff0000)>>16), byte((size&0xff00)>>8), byte(size&0xff))
+		res = append(res, 0x84, byte((size&0xff000000)>>24), byte((size&0xff0000)>>16), byte((size&0xff00)>>8), byte(size&0xff))
 	} else {
 		panic("size too large")
 	}

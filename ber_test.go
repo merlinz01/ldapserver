@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/merlinz01/ldapserver"
@@ -115,16 +116,21 @@ func TestBerReadElement(t *testing.T) {
 		{ldapserver.BerRawElement{ldapserver.BerTypeBoolean, []byte{0x00}}, []byte{0x01, 0x01, 0x00}, nil},
 		{ldapserver.BerRawElement{ldapserver.BerTypeBoolean, []byte{0xff}}, []byte{0x01, 0x01, 0xff}, nil},
 		{ldapserver.BerRawElement{ldapserver.BerTypeOctetString, []byte("Hello!")}, []byte{0x04, 0x06, 0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x21}, nil},
+		{ldapserver.BerRawElement{ldapserver.BerTypeOctetString, []byte("lorem ipsum dolor sit amet")}, []byte("\x04\x1alorem ipsum dolor sit amet"), nil},
+		{ldapserver.BerRawElement{ldapserver.BerTypeOctetString, []byte(strings.Repeat("lorem ipsum dolor sit amet", 10000))}, []byte("\x04\x83\x03\xf7\xa0" + strings.Repeat("lorem ipsum dolor sit amet", 10000)), nil},
 	} {
 		elmt, err := ldapserver.BerReadElement(bytes.NewReader(et.repr))
+		if err != et.err {
+			t.Fatal("Expected error", et.err, ", got error", err)
+		}
 		if elmt.Type != et.res.Type {
 			t.Fatal("invalid type read")
 		}
 		if !bytes.Equal(elmt.Data, et.res.Data) {
 			t.Fatal("invalid data read")
 		}
-		if err != et.err {
-			t.Fatal("Expected error", et.err, ", got error", err)
+		if !bytes.Equal(et.repr, ldapserver.BerEncodeElement(elmt.Type, elmt.Data)) {
+			t.Fatal("invalid encoding")
 		}
 	}
 }
