@@ -22,7 +22,7 @@ type Conn struct {
 	// TLS config for StartTLS connections
 	TLSConfig *tls.Config
 	// Mutex to prevent reading/writing while setting up TLS
-	tlsStarting sync.Mutex
+	tlsStarting sync.RWMutex
 	// Mutex to synchronize message sending
 	sending sync.Mutex
 	// Wait group to enable atomic Bind request processing
@@ -80,8 +80,8 @@ func (c *Conn) SendUnsolicitedNotification(resultCode LDAPResultCode, diagnostic
 
 // Sends a LDAPMessage to the client and removes the corresponding message from the abandonment cache
 func (c *Conn) SendMessage(msg *Message) error {
-	c.tlsStarting.Lock()
-	defer c.tlsStarting.Unlock()
+	c.tlsStarting.RLock()
+	defer c.tlsStarting.RUnlock()
 	c.sending.Lock()
 	defer c.sending.Unlock()
 	_, err := io.Copy(c.conn, bytes.NewReader(msg.EncodeWithHeader()))
