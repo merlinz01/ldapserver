@@ -110,7 +110,6 @@ func (s *LDAPServer) Shutdown() {
 
 // Handle a connection received from the listener.
 func (s *LDAPServer) handleConnection(c net.Conn) {
-	log.Println("Handle connection")
 	defer c.Close()
 	ldapConn := Conn{
 		conn:         c,
