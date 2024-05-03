@@ -1,6 +1,9 @@
 package ldapserver
 
-import "bytes"
+import (
+	"bytes"
+	"strings"
+)
 
 // Defined filter types
 const (
@@ -188,4 +191,113 @@ func GetFilter(raw BerRawElement) (*Filter, error) {
 		f.Data = &raw
 	}
 	return f, nil
+}
+
+// Return a string representation of the filter.
+//
+// NOTE: The output of this function is not valid LDAP if an unrecognized filter type is encountered.
+// It outputs unrecognized types as (?<data>), where <data> is the raw data of the unrecognized filter.
+func (f *Filter) String() string {
+	res := strings.Builder{}
+	f.writeToBuilder(&res)
+	return res.String()
+}
+
+func (f *Filter) writeToBuilder(w *strings.Builder) {
+	w.WriteRune('(')
+	switch f.Type {
+	case FilterTypeAnd:
+		w.WriteRune('&')
+		for _, filter := range f.Data.([]Filter) {
+			filter.writeToBuilder(w)
+		}
+	case FilterTypeOr:
+		w.WriteRune('|')
+		for _, filter := range f.Data.([]Filter) {
+			filter.writeToBuilder(w)
+		}
+	case FilterTypeNot:
+		w.WriteRune('!')
+		f.Data.(*Filter).writeToBuilder(w)
+	case FilterTypeEqual:
+		ava := f.Data.(*AttributeValueAssertion)
+		w.WriteString(ava.Description)
+		w.WriteRune('=')
+		w.Write(encodeAssertionValue(ava.Value))
+	case FilterTypeSubstrings:
+		sf := f.Data.(*SubstringFilter)
+		w.WriteString(sf.Attribute)
+		w.WriteRune('=')
+		if sf.Initial != "" {
+			w.Write(encodeAssertionValue(sf.Initial))
+		}
+		w.WriteRune('*')
+		for _, mid := range sf.Any {
+			w.Write(encodeAssertionValue(mid))
+			w.WriteRune('*')
+		}
+		if sf.Final != "" {
+			w.Write(encodeAssertionValue(sf.Final))
+		}
+	case FilterTypeGreaterOrEqual:
+		ava := f.Data.(*AttributeValueAssertion)
+		w.WriteString(ava.Description)
+		w.WriteString(">=")
+		w.Write(encodeAssertionValue(ava.Value))
+	case FilterTypeLessOrEqual:
+		ava := f.Data.(*AttributeValueAssertion)
+		w.WriteString(ava.Description)
+		w.WriteString("<=")
+		w.Write(encodeAssertionValue(ava.Value))
+	case FilterTypePresent:
+		w.WriteString(f.Data.(string))
+		w.WriteString("=*")
+	case FilterTypeApproxMatch:
+		ava := f.Data.(*AttributeValueAssertion)
+		w.WriteString(ava.Description)
+		w.WriteString("~=")
+		w.Write(encodeAssertionValue(ava.Value))
+	case FilterTypeExtensibleMatch:
+		mra := f.Data.(*MatchingRuleAssertion)
+		w.WriteString(mra.Attribute)
+		if mra.DNAttributes {
+			w.WriteString(":dn")
+		}
+		if mra.MatchingRule != "" {
+			w.WriteRune(':')
+			w.WriteString(mra.MatchingRule)
+		}
+		w.WriteString(":=")
+		w.Write(encodeAssertionValue(mra.Value))
+	case FilterTypeAbsoluteTrue:
+		w.WriteRune('&')
+	case FilterTypeAbsoluteFalse:
+		w.WriteRune('|')
+	default:
+		w.WriteRune('?')
+		w.Write(encodeAssertionValue(string(f.Data.(*BerRawElement).Data)))
+	}
+	w.WriteRune(')')
+}
+
+var avEscapeMap = map[byte]string{
+	'*':    "\\2a",
+	'(':    "\\28",
+	')':    "\\29",
+	'\\':   "\\5c",
+	'\x00': "\\00",
+}
+
+// Encode an assertion value according to RFC 4515
+func encodeAssertionValue(value string) []byte {
+	buf := make([]byte, 0, len(value))
+	for i := 0; i < len(value); i++ {
+		switch value[i] {
+		case '*', '(', ')', '\\', '\x00':
+			buf = append(buf, avEscapeMap[value[i]]...)
+		default:
+			buf = append(buf, value[i])
+		}
+	}
+	return buf
 }
