@@ -42,3 +42,4 @@ var ErrTLSAlreadySetUp = &LDAPError{message: "TLS already set up"}
 var ErrTLSNotAvailable = &LDAPError{message: "TLS not available"}
 var ErrWrongElementType = &LDAPError{message: "wrong element type"}
 var ErrWrongSequenceLength = &LDAPError{message: "wrong sequence length"}
+var ErrInvalidDN = &LDAPError{message: "invalid DN"}

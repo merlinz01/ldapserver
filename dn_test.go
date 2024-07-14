@@ -47,6 +47,38 @@ func TestEncodeDN(t *testing.T) {
 	}
 }
 
+func TestParseDN(t *testing.T) {
+	type dnTest struct {
+		dnStr string
+		dn    ldapserver.DN
+		err   error
+	}
+	tests := []dnTest{
+		{"uid=jdoe,ou=users,dc=example,dc=com",
+			ldapserver.DN{{{"dc", "com"}}, {{"dc", "example"}}, {{"ou", "users"}}, {{"uid", "jdoe"}}}, nil},
+		{"UID=jsmith,DC=example,DC=net",
+			ldapserver.DN{{{"DC", "net"}}, {{"DC", "example"}}, {{"UID", "jsmith"}}}, nil},
+		{"CN=J.  Smith+OU=Sales,DC=example,DC=net",
+			ldapserver.DN{{{"DC", "net"}}, {{"DC", "example"}}, {{"CN", "J.  Smith"}, {"OU", "Sales"}}}, nil},
+		{"CN=James \\\"Jim\\\" Smith,DC=example,DC=net",
+			ldapserver.DN{{{"DC", "net"}}, {{"DC", "example"}}, {{"CN", "James \"Jim\" Smith"}}}, nil},
+		{"CN=Before\\0DAfter,DC=example,DC=net",
+			ldapserver.DN{{{"DC", "net"}}, {{"DC", "example"}}, {{"CN", "Before\rAfter"}}}, nil},
+		{"CN=,DC=,DC=", ldapserver.DN{{{"DC", ""}}, {{"DC", ""}}, {{"CN", ""}}}, nil},
+		{"CN", nil, ldapserver.ErrInvalidDN},
+		{"CN=J. Smith,OU=Sales,DC=example,DC", nil, ldapserver.ErrInvalidDN},
+	}
+	for _, dn := range tests {
+		pdn, err := ldapserver.ParseDN(dn.dnStr)
+		if err != dn.err {
+			t.Fatalf("Error parsing DN: %s", err)
+		} else if !pdn.Equal(dn.dn) {
+			t.Errorf("Expected %s", dn.dn)
+			t.Fatalf("Got      %s", pdn)
+		}
+	}
+}
+
 func TestDNIsChild(t *testing.T) {
 	type childTest struct {
 		child   string

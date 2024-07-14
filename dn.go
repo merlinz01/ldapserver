@@ -209,6 +209,9 @@ func ParseDN(s string) (DN, error) {
 		var r RDN
 		for _, attr := range splitAttrs(rdn) {
 			parts := splitAttr(attr)
+			if len(parts) < 2 {
+				return nil, ErrInvalidDN
+			}
 			value, err := DecodeRDNAttributeValue(parts[1])
 			if err != nil {
 				return nil, err
